@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PC サポート診断ツール</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --bg2: #181c27;
+    --bg3: #1e2433;
+    --border: #2a3045;
+    --accent: #4f9eff;
+    --accent2: #7b5ea7;
+    --success: #3ecf8e;
+    --warn: #f5a623;
+    --danger: #e05252;
+    --text: #e8eaf0;
+    --text2: #8892a4;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Noto Sans JP', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* Header */
+  .header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .header h1 { font-size: 15px; font-weight: 700; letter-spacing: 0.02em; }
+  .header-sub { font-size: 11px; color: var(--text2); font-family: var(--mono); }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    gap: 4px;
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 10px 16px;
+    font-size: 13px;
+    font-family: var(--sans);
+    color: var(--text2);
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* Main */
+  .main { padding: 20px; max-width: 800px; margin: 0 auto; }
+
+  /* Panel */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Card */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+  .card-title {
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-title::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
+  /* Form elements */
+  label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+
+  input[type="text"], textarea, select {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 12px;
+  }
+  input[type="text"]:focus, textarea:focus, select:focus {
+    border-color: var(--accent);
+  }
+  textarea { resize: vertical; min-height: 90px; }
+  select option { background: var(--bg3); }
+
+  /* Row grid */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media(max-width: 560px) { .grid2 { grid-template-columns: 1fr; } }
+
+  /* Drop zone */
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    margin-bottom: 12px;
+  }
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--accent);
+    background: rgba(79,158,255,0.05);
+  }
+  .dropzone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .dropzone-icon { font-size: 28px; margin-bottom: 8px; }
+  .dropzone-text { color: var(--text2); font-size: 13px; }
+  .dropzone-text span { color: var(--accent); }
+
+  /* File list */
+  .file-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+  .file-item {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  .file-item-icon { font-size: 16px; }
+  .file-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-item-size { color: var(--text2); font-size: 11px; font-family: var(--mono); }
+  .file-item-remove {
+    background: none; border: none; color: var(--text2);
+    cursor: pointer; font-size: 16px; padding: 0 2px;
+    transition: color 0.2s;
+  }
+  .file-item-remove:hover { color: var(--danger); }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+  .btn-success { background: var(--success); color: #0a2a1e; }
+  .btn-success:hover:not(:disabled) { opacity: 0.88; }
+  .btn-warn { background: var(--warn); color: #2a1a00; }
+  .btn-warn:hover:not(:disabled) { opacity: 0.88; }
+  .btn-ghost {
+    background: var(--bg3); color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-full { width: 100%; justify-content: center; }
+
+  /* Result box */
+  .result-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 14px;
+    display: none;
+  }
+  .result-box.visible { display: block; }
+  .result-box.loading { border-color: var(--accent); }
+  .result-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .result-label {
+    font-size: 11px; font-family: var(--mono);
+    color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .result-content {
+    font-size: 14px; line-height: 1.8;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+  .result-content h3 {
+    font-size: 14px; font-weight: 700;
+    color: var(--accent); margin: 14px 0 6px;
+  }
+  .result-content h3:first-child { margin-top: 0; }
+  .result-content ul { padding-left: 18px; }
+  .result-content li { margin-bottom: 4px; }
+  .result-content code {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 5px;
+    font-family: var(--mono); font-size: 12px;
+  }
+
+  /* Loading spinner */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Status badge */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px; border-radius: 20px;
+    font-size: 11px; font-family: var(--mono);
+  }
+  .badge-blue { background: rgba(79,158,255,0.15); color: var(--accent); }
+  .badge-green { background: rgba(62,207,142,0.15); color: var(--success); }
+  .badge-warn { background: rgba(245,166,35,0.15); color: var(--warn); }
+
+  /* Notice box */
+  .notice {
+    background: rgba(79,158,255,0.08);
+    border: 1px solid rgba(79,158,255,0.25);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 12px;
+    line-height: 1.6;
+  }
+
+  /* Form data preview */
+  .form-data-preview {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .form-data-preview .fdp-row { display: flex; gap: 8px; }
+  .form-data-preview .fdp-key { color: var(--text2); min-width: 100px; }
+  .form-data-preview .fdp-val { color: var(--text); }
+
+  /* PDF options */
+  .option-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .option-item {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .option-item:hover { border-color: var(--accent); }
+  .option-item input[type="radio"] { accent-color: var(--accent); }
+  .option-item-label { font-size: 13px; }
+  .option-item-desc { font-size: 11px; color: var(--text2); }
+
+  /* Section spacing */
+  .section-gap { margin-top: 14px; }
+
+  /* Copy button */
+  .copy-btn {
+    background: none; border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text2);
+    padding: 4px 10px; font-size: 11px; cursor: pointer;
+    font-family: var(--mono); transition: all 0.2s;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* URL notice */
+  .url-notice {
+    background: rgba(62,207,142,0.08);
+    border: 1px solid rgba(62,207,142,0.25);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--success);
+    margin-bottom: 14px;
+    font-family: var(--mono);
+    word-break: break-all;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">🖥️</div>
+  <div>
+    <h1>PC サポート診断ツール</h1>
+    <div class="header-sub">remote support assistant</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('diag')">🔍 AI診断</button>
+  <button class="tab" onclick="switchTab('fix')">🔧 文字化け修復</button>
+  <button class="tab" onclick="switchTab('pdf')">📄 PDF操作</button>
+</div>
+
+<div class="main">
+
+  <!-- ========== TAB 1: AI診断 ========== -->
+  <div class="panel active" id="tab-diag">
+
+    <!-- フォーム自動読み込み通知 -->
+    <div id="auto-loaded-notice" class="url-notice" style="display:none">
+      ✅ フォームの回答を自動読み込みしました
+    </div>
+
+    <div class="card">
+      <div class="card-title">フォーム回答内容</div>
+
+      <div id="form-preview" class="form-data-preview" style="display:none"></div>
+
+      <div class="grid2">
+        <div>
+          <label>カテゴリ（質問1）</label>
+          <select id="d-category">
+            <option value="">選択してください</option>
+            <option>データの保存・削除・共有</option>
+            <option>画像・動画ファイルの編集</option>
+            <option>Excelデータの編集や保存</option>
+            <option>PDFデータの編集や保存</option>
+            <option>メール関連</option>
+            <option>OneDrive関連</option>
+            <option>その他</option>
+          </select>
+        </div>
+        <div>
+          <label>症状（質問2）</label>
+          <select id="d-symptom">
+            <option value="">選択してください</option>
+            <option>エラー表示が出た</option>
+            <option>ファイルが開かない・保存できない</option>
+            <option>動作が止まった・固まった</option>
+            <option>データが消えた・見つからない</option>
+            <option>その他</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <label>端末（質問3）</label>
+          <select id="d-device">
+            <option value="">選択してください</option>
+            <option>共有PC</option>
+            <option>亀井デスクトップPC</option>
+            <option>竹内デスクトップPC</option>
+            <option>阿部ノートPC</option>
+            <option>その他</option>
+          </select>
+        </div>
+        <div>
+          <label>発生時期（質問4）</label>
+          <select id="d-timing">
+            <option value="">選択してください</option>
+            <option>今日初めて起きた</option>
+            <option>以前から</option>
+            <option>いつからかわからない</option>
+          </select>
+        </div>
+      </div>
+
+      <label>補足・詳細（任意）</label>
+      <textarea id="d-note" placeholder="フォームの自由記述欄の内容や、気になる点を追記してください"></textarea>
+    </div>
+
+    <div class="card">
+      <div class="card-title">スクリーンショット・添付ファイル</div>
+      <div class="notice">LINEで届いた画像や、問題のファイルをここにアップロードしてください（複数可）</div>
+      <div class="dropzone" id="diag-drop">
+        <input type="file" id="diag-file" multiple accept="image/*,.pdf,.xlsx,.xls,.docx,.doc,.txt,.csv,.zip" onchange="handleFiles('diag', this.files)">
+        <div class="dropzone-icon">📂</div>
+        <div class="dropzone-text">クリックまたはドラッグ＆ドロップ<br><span>画像・PDF・Excel・Word・ZIP など</span></div>
+      </div>
+      <div class="file-list" id="diag-filelist"></div>
+    </div>
+
+    <button class="btn btn-primary btn-full" id="diag-btn" onclick="runDiagnosis()">
+      🔍 AI診断を実行
+    </button>
+
+    <div class="result-box" id="diag-result">
+      <div class="result-header">
+        <span class="result-label">診断結果</span>
+        <button class="copy-btn" onclick="copyResult('diag-result-content')">コピー</button>
+      </div>
+      <div class="result-content" id="diag-result-content"></div>
+    </div>
+  </div>
+
+  <!-- ========== TAB 2: 文字化け修復 ========== -->
+  <div class="panel" id="tab-fix">
+    <div class="card">
+      <div class="card-title">文字化けファイルの修復</div>
+      <div class="notice">文字化けしているファイルをアップロードすると、AIが文字コードを判定して修復します。<br>対応形式：CSV・TXT・XML など文字ベースのファイル</div>
+
+      <div class="dropzone" id="fix-drop">
+        <input type="file" id="fix-file" accept=".csv,.txt,.xml,.tsv,.json" onchange="handleFiles('fix', this.files)">
+        <div class="dropzone-icon">🔤</div>
+        <div class="dropzone-text">文字化けファイルをアップロード<br><span>CSV・TXT・XML・JSON など</span></div>
+      </div>
+      <div class="file-list" id="fix-filelist"></div>
+
+      <label>補足情報（任意）</label>
+      <textarea id="fix-note" placeholder="例：Excelで開いたら文字化けした、ZIPを解凍したら読めなかった など"></textarea>
+    </div>
+
+    <button class="btn btn-warn btn-full" id="fix-btn" onclick="runFix()">
+      🔧 文字化けを診断・修復
+    </button>
+
+    <div class="result-box" id="fix-result">
+      <div class="result-header">
+        <span class="result-label">修復結果</span>
+        <button class="copy-btn" onclick="copyResult('fix-result-content')">コピー</button>
+      </div>
+      <div class="result-content" id="fix-result-content"></div>
+      <div id="fix-download-area" class="section-gap"></div>
+    </div>
+  </div>
+
+  <!-- ========== TAB 3: PDF操作 ========== -->
+  <div class="panel" id="tab-pdf">
+    <div class="card">
+      <div class="card-title">PDF操作</div>
+
+      <div class="dropzone" id="pdf-drop">
+        <input type="file" id="pdf-file" accept=".pdf" multiple onchange="handleFiles('pdf', this.files)">
+        <div class="dropzone-icon">📄</div>
+        <div class="dropzone-text">PDFファイルをアップロード<br><span>複数ファイルの結合も可能</span></div>
+      </div>
+      <div class="file-list" id="pdf-filelist"></div>
+
+      <label style="margin-top:4px">操作を選択</label>
+      <div class="option-group" id="pdf-options">
+        <label class="option-item">
+          <input type="radio" name="pdf-op" value="split" checked>
+          <div>
+            <div class="option-item-label">📑 ページ分解</div>
+            <div class="option-item-desc">複数ページのPDFを1ページずつに分割する</div>
+          </div>
+        </label>
+        <label class="option-item">
+          <input type="radio" name="pdf-op" value="merge">
+          <div>
+            <div class="option-item-label">📚 結合</div>
+            <div class="option-item-desc">複数のPDFを1つにまとめる</div>
+          </div>
+        </label>
+        <label class="option-item">
+          <input type="radio" name="pdf-op" value="compress">
+          <div>
+            <div class="option-item-label">📦 圧縮</div>
+            <div class="option-item-desc">ファイルサイズを小さくする（画像PDF向け）</div>
+          </div>
+        </label>
+        <label class="option-item">
+          <input type="radio" name="pdf-op" value="extract">
+          <div>
+            <div class="option-item-label">📝 テキスト抽出</div>
+            <div class="option-item-desc">PDFの文字をテキストとして取り出す</div>
+          </div>
+        </label>
+      </div>
+
+      <label>ページ指定（任意）</label>
+      <input type="text" id="pdf-pages" placeholder="例：1-3（分解・抽出時に特定ページのみ処理）">
+    </div>
+
+    <button class="btn btn-success btn-full" id="pdf-btn" onclick="runPdf()">
+      📄 PDF操作を実行
+    </button>
+
+    <div class="result-box" id="pdf-result">
+      <div class="result-header">
+        <span class="result-label">処理結果</span>
+        <button class="copy-btn" onclick="copyResult('pdf-result-content')">コピー</button>
+      </div>
+      <div class="result-content" id="pdf-result-content"></div>
+      <div id="pdf-download-area" class="section-gap"></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ========== State ==========
+const state = {
+  diag: { files: [] },
+  fix:  { files: [] },
+  pdf:  { files: [] },
+};
+
+// ========== Tab switching ==========
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ========== File handling ==========
+const fileIcons = {
+  'image': '🖼️', 'pdf': '📄', 'excel': '📊', 'word': '📝',
+  'csv': '📋', 'txt': '📃', 'zip': '📦', 'other': '📎'
+};
+function getFileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  if (['jpg','jpeg','png','gif','webp','bmp'].includes(ext)) return fileIcons.image;
+  if (ext === 'pdf') return fileIcons.pdf;
+  if (['xlsx','xls'].includes(ext)) return fileIcons.excel;
+  if (['docx','doc'].includes(ext)) return fileIcons.word;
+  if (['csv','tsv'].includes(ext)) return fileIcons.csv;
+  if (['txt','xml','json'].includes(ext)) return fileIcons.txt;
+  if (['zip','rar','7z'].includes(ext)) return fileIcons.zip;
+  return fileIcons.other;
+}
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(1) + ' MB';
+}
+function handleFiles(tab, fileList) {
+  Array.from(fileList).forEach(f => state[tab].files.push(f));
+  renderFileList(tab);
+}
+function removeFile(tab, idx) {
+  state[tab].files.splice(idx, 1);
+  renderFileList(tab);
+}
+function renderFileList(tab) {
+  const el = document.getElementById(tab + '-filelist');
+  el.innerHTML = state[tab].files.map((f, i) => `
+    <div class="file-item">
+      <span class="file-item-icon">${getFileIcon(f.name)}</span>
+      <span class="file-item-name">${f.name}</span>
+      <span class="file-item-size">${formatSize(f.size)}</span>
+      <button class="file-item-remove" onclick="removeFile('${tab}',${i})">×</button>
+    </div>
+  `).join('');
+}
+
+// Drag & drop
+['diag','fix','pdf'].forEach(tab => {
+  const zone = document.getElementById(tab + '-drop');
+  if (!zone) return;
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    handleFiles(tab, e.dataTransfer.files);
+  });
+});
+
+// ========== File to base64 ==========
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+function fileToText(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsText(file, 'UTF-8');
+  });
+}
+function fileToArrayBuffer(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsArrayBuffer(file);
+  });
+}
+
+// ========== Claude API call ==========
+async function callClaude(messages, maxTokens = 1500) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: maxTokens,
+      messages
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content.map(b => b.text || '').join('');
+}
+
+// ========== Result helpers ==========
+function showLoading(resultId) {
+  const box = document.getElementById(resultId);
+  box.classList.add('visible', 'loading');
+  const content = document.getElementById(resultId + '-content');
+  content.innerHTML = '<span class="spinner"></span> 診断中...';
+}
+function showResult(resultId, text) {
+  const box = document.getElementById(resultId);
+  box.classList.remove('loading');
+  const content = document.getElementById(resultId + '-content');
+  // Simple markdown-like rendering
+  let html = text
+    .replace(/###\s(.+)/g, '<h3>$1</h3>')
+    .replace(/##\s(.+)/g, '<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/^[\-\*]\s(.+)/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n/g, '<br>');
+  content.innerHTML = html;
+}
+function showError(resultId, msg) {
+  const box = document.getElementById(resultId);
+  box.classList.remove('loading');
+  document.getElementById(resultId + '-content').innerHTML =
+    `<span style="color:var(--danger)">❌ エラー: ${msg}</span>`;
+}
+function copyResult(contentId) {
+  const text = document.getElementById(contentId).innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    btn.textContent = '✅ コピー済み';
+    setTimeout(() => btn.textContent = 'コピー', 1500);
+  });
+}
+
+// ========== TAB 1: AI診断 ==========
+async function runDiagnosis() {
+  const category = document.getElementById('d-category').value;
+  const symptom  = document.getElementById('d-symptom').value;
+  const device   = document.getElementById('d-device').value;
+  const timing   = document.getElementById('d-timing').value;
+  const note     = document.getElementById('d-note').value;
+  const files    = state.diag.files;
+
+  if (!category && !symptom && files.length === 0) {
+    alert('カテゴリか症状を選択するか、ファイルをアップロードしてください。');
+    return;
+  }
+
+  showLoading('diag-result');
+  document.getElementById('diag-btn').disabled = true;
+
+  try {
+    const content = [];
+
+    // Text prompt
+    const info = [
+      category && `カテゴリ: ${category}`,
+      symptom  && `症状: ${symptom}`,
+      device   && `端末: ${device}`,
+      timing   && `発生時期: ${timing}`,
+      note     && `補足: ${note}`,
+    ].filter(Boolean).join('\n');
+
+    content.push({
+      type: 'text',
+      text: `あなたは社内PCサポートの専門家です。以下のトラブル情報をもとに診断してください。\n\n${info}\n\n以下の構成で回答してください：\n### 原因の候補\n（考えられる原因を1〜3個）\n### 確認すべきこと\n（すぐに確認できる項目）\n### 対処手順\n（番号付きで具体的に）\n### 注意点\n（あれば）`
+    });
+
+    // Image files
+    for (const f of files) {
+      const ext = f.name.split('.').pop().toLowerCase();
+      if (['jpg','jpeg','png','gif','webp'].includes(ext)) {
+        const b64 = await fileToBase64(f);
+        const mime = f.type || 'image/jpeg';
+        content.push({ type: 'image', source: { type: 'base64', media_type: mime, data: b64 } });
+        content.push({ type: 'text', text: `上記の画像（${f.name}）も参考に診断してください。エラーメッセージが見えれば内容も分析してください。` });
+      }
+    }
+
+    const result = await callClaude([{ role: 'user', content }]);
+    showResult('diag-result', result);
+  } catch(e) {
+    showError('diag-result', e.message);
+  } finally {
+    document.getElementById('diag-btn').disabled = false;
+  }
+}
+
+// ========== TAB 2: 文字化け修復 ==========
+async function runFix() {
+  const files = state.fix.files;
+  const note  = document.getElementById('fix-note').value;
+
+  if (files.length === 0) {
+    alert('ファイルをアップロードしてください。');
+    return;
+  }
+
+  showLoading('fix-result');
+  document.getElementById('fix-btn').disabled = true;
+  document.getElementById('fix-download-area').innerHTML = '';
+
+  try {
+    const f = files[0];
+    // Try reading with different encodings
+    const encodings = ['UTF-8', 'Shift_JIS', 'EUC-JP', 'ISO-2022-JP'];
+    let bestText = '';
+    let bestEnc = 'UTF-8';
+
+    for (const enc of encodings) {
+      try {
+        const ab = await fileToArrayBuffer(f);
+        const decoder = new TextDecoder(enc, { fatal: true });
+        const text = decoder.decode(ab);
+        if (!text.includes('')) { bestText = text; bestEnc = enc; break; }
+      } catch(e) { /* try next */ }
+    }
+
+    // If still garbled, try Shift-JIS as fallback
+    if (!bestText) {
+      const ab = await fileToArrayBuffer(f);
+      try {
+        bestText = new TextDecoder('Shift_JIS').decode(ab);
+        bestEnc = 'Shift_JIS (フォールバック)';
+      } catch(e) {
+        bestText = await fileToText(f);
+        bestEnc = 'UTF-8 (フォールバック)';
+      }
+    }
+
+    const prompt = `以下はファイルから読み取ったテキストです（文字コード: ${bestEnc}）。\nファイル名: ${f.name}\n${note ? '補足: ' + note : ''}\n\n---\n${bestText.substring(0, 3000)}\n---\n\n以下を答えてください：\n### 判定結果\n（文字化けの有無、原因）\n### 検出した文字コード\n### 修復後テキスト（先頭500文字）\n### 修復方法の手順\n（Excelで開く場合など具体的に）`;
+
+    const result = await callClaude([{ role: 'user', content: [{ type: 'text', text: prompt }] }]);
+    showResult('fix-result', result);
+
+    // Offer download of re-encoded file
+    const blob = new Blob([new TextEncoder().encode(bestText)], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const fname = f.name.replace(/\.[^.]+$/, '') + '_fixed.txt';
+    document.getElementById('fix-download-area').innerHTML = `
+      <a href="${url}" download="${fname}" class="btn btn-success btn-sm">
+        ⬇️ 修復ファイルをダウンロード（UTF-8）
+      </a>`;
+  } catch(e) {
+    showError('fix-result', e.message);
+  } finally {
+    document.getElementById('fix-btn').disabled = false;
+  }
+}
+
+// ========== TAB 3: PDF操作 ==========
+async function runPdf() {
+  const files = state.pdf.files;
+  const op    = document.querySelector('input[name="pdf-op"]:checked').value;
+  const pages = document.getElementById('pdf-pages').value;
+
+  if (files.length === 0) {
+    alert('PDFファイルをアップロードしてください。');
+    return;
+  }
+
+  showLoading('pdf-result');
+  document.getElementById('pdf-btn').disabled = true;
+  document.getElementById('pdf-download-area').innerHTML = '';
+
+  try {
+    const opLabels = { split: 'ページ分解', merge: '結合', compress: '圧縮', extract: 'テキスト抽出' };
+    const fileNames = files.map(f => f.name).join(', ');
+
+    // For extract: read as base64 and send to Claude
+    if (op === 'extract') {
+      const f = files[0];
+      const b64 = await fileToBase64(f);
+      const prompt = `以下のPDFからテキストを抽出してください。\nページ指定: ${pages || '全ページ'}\n\n抽出したテキストをそのまま出力してください。`;
+      const msgContent = [
+        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: b64 } },
+        { type: 'text', text: prompt }
+      ];
+      const result = await callClaude([{ role: 'user', content: msgContent }], 2000);
+      showResult('pdf-result', result);
+
+      const blob = new Blob([result], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      document.getElementById('pdf-download-area').innerHTML = `
+        <a href="${url}" download="${files[0].name.replace('.pdf','')}_text.txt" class="btn btn-success btn-sm">
+          ⬇️ テキストをダウンロード
+        </a>`;
+    } else {
+      // For split/merge/compress: explain procedure via AI
+      const prompt = `PDFの操作について手順を教えてください。\n操作: ${opLabels[op]}\nファイル: ${fileNames}\n${pages ? 'ページ指定: ' + pages : ''}\n\nWindows 11環境で無料で実行できる方法を、具体的な手順で説明してください。ブラウザやMicrosoft Edgeで操作できる方法を優先してください。`;
+      const result = await callClaude([{ role: 'user', content: [{ type: 'text', text: prompt }] }]);
+      showResult('pdf-result', result);
+    }
+  } catch(e) {
+    showError('pdf-result', e.message);
+  } finally {
+    document.getElementById('pdf-btn').disabled = false;
+  }
+}
+
+// ========== URL Params auto-load (from Google Apps Script) ==========
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const category = params.get('category');
+  const symptom  = params.get('symptom');
+  const device   = params.get('device');
+  const timing   = params.get('timing');
+  const note     = params.get('note');
+
+  if (category || symptom || device || timing) {
+    if (category) document.getElementById('d-category').value = category;
+    if (symptom)  document.getElementById('d-symptom').value  = symptom;
+    if (device)   document.getElementById('d-device').value   = device;
+    if (timing)   document.getElementById('d-timing').value   = timing;
+    if (note)     document.getElementById('d-note').value     = note;
+
+    document.getElementById('auto-loaded-notice').style.display = 'block';
+
+    // Show preview
+    const rows = [
+      category && { k: 'カテゴリ', v: category },
+      symptom  && { k: '症状', v: symptom },
+      device   && { k: '端末', v: device },
+      timing   && { k: '発生時期', v: timing },
+      note     && { k: '補足', v: note },
+    ].filter(Boolean);
+
+    if (rows.length) {
+      const preview = document.getElementById('form-preview');
+      preview.style.display = 'block';
+      preview.innerHTML = rows.map(r =>
+        `<div class="fdp-row"><span class="fdp-key">${r.k}</span><span class="fdp-val">${r.v}</span></div>`
+      ).join('');
+    }
+  }
+})();
+</script>
+</body>
+</html>
