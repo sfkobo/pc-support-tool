@@ -5,402 +5,367 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PC サポート診断ツール</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap');
-
-  :root {
-    --bg: #0f1117;
-    --bg2: #181c27;
-    --bg3: #1e2433;
-    --border: #2a3045;
-    --accent: #4f9eff;
-    --accent2: #7b5ea7;
-    --success: #3ecf8e;
-    --warn: #f5a623;
-    --danger: #e05252;
-    --text: #e8eaf0;
-    --text2: #8892a4;
-    --mono: 'IBM Plex Mono', monospace;
-    --sans: 'Noto Sans JP', sans-serif;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    min-height: 100vh;
-    font-size: 14px;
-  }
-
-  /* Header */
-  .header {
-    background: var(--bg2);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 20px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .header-icon {
-    width: 32px; height: 32px;
-    background: var(--accent);
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-  }
-  .header h1 { font-size: 15px; font-weight: 700; letter-spacing: 0.02em; }
-  .header-sub { font-size: 11px; color: var(--text2); font-family: var(--mono); }
-
-  /* Tabs */
-  .tabs {
-    display: flex;
-    background: var(--bg2);
-    border-bottom: 1px solid var(--border);
-    padding: 0 20px;
-    gap: 4px;
-    overflow-x: auto;
-  }
-  .tab {
-    padding: 10px 16px;
-    font-size: 13px;
-    font-family: var(--sans);
-    color: var(--text2);
-    border: none;
-    background: none;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    white-space: nowrap;
-    transition: color 0.2s, border-color 0.2s;
-  }
-  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-  .tab:hover:not(.active) { color: var(--text); }
-
-  /* Main */
-  .main { padding: 20px; max-width: 800px; margin: 0 auto; }
-
-  /* Panel */
-  .panel { display: none; }
-  .panel.active { display: block; }
-
-  /* Card */
-  .card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 18px;
-    margin-bottom: 14px;
-  }
-  .card-title {
-    font-size: 12px;
-    font-family: var(--mono);
-    color: var(--text2);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .card-title::before {
-    content: '';
-    display: inline-block;
-    width: 6px; height: 6px;
-    background: var(--accent);
-    border-radius: 50%;
-  }
-
-  /* Form elements */
-  label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 6px; }
-
-  input[type="text"], textarea, select {
-    width: 100%;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-family: var(--sans);
-    font-size: 14px;
-    padding: 10px 12px;
-    outline: none;
-    transition: border-color 0.2s;
-    margin-bottom: 12px;
-  }
-  input[type="text"]:focus, textarea:focus, select:focus {
-    border-color: var(--accent);
-  }
-  textarea { resize: vertical; min-height: 90px; }
-  select option { background: var(--bg3); }
-
-  /* Row grid */
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  @media(max-width: 560px) { .grid2 { grid-template-columns: 1fr; } }
-
-  /* Drop zone */
-  .dropzone {
-    border: 2px dashed var(--border);
-    border-radius: 10px;
-    padding: 28px 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
-    position: relative;
-    margin-bottom: 12px;
-  }
-  .dropzone:hover, .dropzone.dragover {
-    border-color: var(--accent);
-    background: rgba(79,158,255,0.05);
-  }
-  .dropzone input[type="file"] {
-    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
-  }
-  .dropzone-icon { font-size: 28px; margin-bottom: 8px; }
-  .dropzone-text { color: var(--text2); font-size: 13px; }
-  .dropzone-text span { color: var(--accent); }
-
-  /* File list */
-  .file-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-  .file-item {
-    display: flex; align-items: center; gap: 8px;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 7px;
-    padding: 8px 12px;
-    font-size: 13px;
-  }
-  .file-item-icon { font-size: 16px; }
-  .file-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .file-item-size { color: var(--text2); font-size: 11px; font-family: var(--mono); }
-  .file-item-remove {
-    background: none; border: none; color: var(--text2);
-    cursor: pointer; font-size: 16px; padding: 0 2px;
-    transition: color 0.2s;
-  }
-  .file-item-remove:hover { color: var(--danger); }
-
-  /* Buttons */
-  .btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 10px 20px;
-    border-radius: 8px;
-    border: none;
-    font-family: var(--sans);
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: opacity 0.2s, transform 0.1s;
-  }
-  .btn:active { transform: scale(0.98); }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn-primary { background: var(--accent); color: #fff; }
-  .btn-primary:hover:not(:disabled) { opacity: 0.88; }
-  .btn-success { background: var(--success); color: #0a2a1e; }
-  .btn-success:hover:not(:disabled) { opacity: 0.88; }
-  .btn-warn { background: var(--warn); color: #2a1a00; }
-  .btn-warn:hover:not(:disabled) { opacity: 0.88; }
-  .btn-ghost {
-    background: var(--bg3); color: var(--text);
-    border: 1px solid var(--border);
-  }
-  .btn-ghost:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
-  .btn-sm { padding: 6px 12px; font-size: 12px; }
-  .btn-full { width: 100%; justify-content: center; }
-
-  /* Result box */
-  .result-box {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px;
-    margin-top: 14px;
-    display: none;
-  }
-  .result-box.visible { display: block; }
-  .result-box.loading { border-color: var(--accent); }
-  .result-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 12px;
-  }
-  .result-label {
-    font-size: 11px; font-family: var(--mono);
-    color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em;
-  }
-  .result-content {
-    font-size: 14px; line-height: 1.8;
-    color: var(--text);
-    white-space: pre-wrap;
-  }
-  .result-content h3 {
-    font-size: 14px; font-weight: 700;
-    color: var(--accent); margin: 14px 0 6px;
-  }
-  .result-content h3:first-child { margin-top: 0; }
-  .result-content ul { padding-left: 18px; }
-  .result-content li { margin-bottom: 4px; }
-  .result-content code {
-    background: var(--bg2); border: 1px solid var(--border);
-    border-radius: 4px; padding: 1px 5px;
-    font-family: var(--mono); font-size: 12px;
-  }
-
-  /* Loading spinner */
-  .spinner {
-    width: 18px; height: 18px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    display: inline-block;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* Status badge */
-  .badge {
-    display: inline-block;
-    padding: 2px 8px; border-radius: 20px;
-    font-size: 11px; font-family: var(--mono);
-  }
-  .badge-blue { background: rgba(79,158,255,0.15); color: var(--accent); }
-  .badge-green { background: rgba(62,207,142,0.15); color: var(--success); }
-  .badge-warn { background: rgba(245,166,35,0.15); color: var(--warn); }
-
-  /* Notice box */
-  .notice {
-    background: rgba(79,158,255,0.08);
-    border: 1px solid rgba(79,158,255,0.25);
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 13px;
-    color: var(--text2);
-    margin-bottom: 12px;
-    line-height: 1.6;
-  }
-
-  /* Form data preview */
-  .form-data-preview {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    border-radius: 0 8px 8px 0;
-    padding: 12px 14px;
-    margin-bottom: 12px;
-    font-size: 13px;
-    line-height: 1.7;
-  }
-  .form-data-preview .fdp-row { display: flex; gap: 8px; }
-  .form-data-preview .fdp-key { color: var(--text2); min-width: 100px; }
-  .form-data-preview .fdp-val { color: var(--text); }
-
-  /* PDF options */
-  .option-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-  .option-item {
-    display: flex; align-items: center; gap: 10px;
-    background: var(--bg3); border: 1px solid var(--border);
-    border-radius: 8px; padding: 10px 14px; cursor: pointer;
-    transition: border-color 0.2s;
-  }
-  .option-item:hover { border-color: var(--accent); }
-  .option-item input[type="radio"] { accent-color: var(--accent); }
-  .option-item-label { font-size: 13px; }
-  .option-item-desc { font-size: 11px; color: var(--text2); }
-
-  /* Section spacing */
-  .section-gap { margin-top: 14px; }
-
-  /* Copy button */
-  .copy-btn {
-    background: none; border: 1px solid var(--border);
-    border-radius: 6px; color: var(--text2);
-    padding: 4px 10px; font-size: 11px; cursor: pointer;
-    font-family: var(--mono); transition: all 0.2s;
-  }
-  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-  /* URL notice */
-  .url-notice {
-    background: rgba(62,207,142,0.08);
-    border: 1px solid rgba(62,207,142,0.25);
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 12px;
-    color: var(--success);
-    margin-bottom: 14px;
-    font-family: var(--mono);
-    word-break: break-all;
-  }
-
-  /* API Key overlay */
-  .apikey-overlay {
-    position: fixed; inset: 0;
-    background: rgba(10,12,20,0.97);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 1000;
-    padding: 20px;
-  }
-  .apikey-box {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 32px 28px;
-    width: 100%; max-width: 440px;
-  }
-  .apikey-box h2 {
-    font-size: 18px; font-weight: 700;
-    margin-bottom: 6px;
-  }
-  .apikey-box p {
-    font-size: 13px; color: var(--text2);
-    margin-bottom: 20px; line-height: 1.6;
-  }
-  .apikey-input-wrap {
-    position: relative; margin-bottom: 14px;
-  }
-  .apikey-input-wrap input {
-    width: 100%; padding: 12px 44px 12px 14px;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 13px;
-    outline: none;
-    margin-bottom: 0;
-  }
-  .apikey-input-wrap input:focus { border-color: var(--accent); }
-  .apikey-toggle {
-    position: absolute; right: 12px; top: 50%;
-    transform: translateY(-50%);
-    background: none; border: none;
-    color: var(--text2); cursor: pointer; font-size: 16px;
-  }
-  .apikey-hint {
-    font-size: 11px; color: var(--text2);
-    font-family: var(--mono); margin-bottom: 20px;
-    padding: 8px 12px;
-    background: var(--bg3);
-    border-radius: 6px;
-    border-left: 3px solid var(--accent);
-  }
-  /* API key status in header */
-  .api-status {
-    margin-left: auto;
-    display: flex; align-items: center; gap: 6px;
-    font-size: 11px; font-family: var(--mono);
-    color: var(--text2); cursor: pointer;
-    padding: 4px 10px;
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    transition: border-color 0.2s;
-  }
-  .api-status:hover { border-color: var(--accent); color: var(--accent); }
-  .api-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--danger);
-  }
-  .api-dot.connected { background: var(--success); }
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+:root {
+  --bg: #0f1117;
+  --bg2: #181c27;
+  --bg3: #1e2433;
+  --border: #2a3045;
+  --accent: #4f9eff;
+  --accent2: #7b5ea7;
+  --success: #3ecf8e;
+  --warn: #f5a623;
+  --danger: #e05252;
+  --text: #e8eaf0;
+  --text2: #8892a4;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'Noto Sans JP', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  font-size: 14px;
+}
+.header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-icon {
+  width: 32px; height: 32px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.header h1 { font-size: 15px; font-weight: 700; letter-spacing: 0.02em; }
+.header-sub { font-size: 11px; color: var(--text2); font-family: var(--mono); }
+.tabs {
+  display: flex;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  gap: 4px;
+  overflow-x: auto;
+}
+.tab {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-family: var(--sans);
+  color: var(--text2);
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color 0.2s, border-color 0.2s;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab:hover:not(.active) { color: var(--text); }
+.main { padding: 20px; max-width: 800px; margin: 0 auto; }
+.panel { display: none; }
+.panel.active { display: block; }
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 14px;
+}
+.card-title {
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.card-title::before {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+input[type="text"], textarea, select {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 12px;
+}
+input[type="text"]:focus, textarea:focus, select:focus { border-color: var(--accent); }
+textarea { resize: vertical; min-height: 90px; }
+select option { background: var(--bg3); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media(max-width: 560px) { .grid2 { grid-template-columns: 1fr; } }
+.dropzone {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  position: relative;
+  margin-bottom: 12px;
+}
+.dropzone:hover, .dropzone.dragover {
+  border-color: var(--accent);
+  background: rgba(79,158,255,0.05);
+}
+.dropzone input[type="file"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.dropzone-icon { font-size: 28px; margin-bottom: 8px; }
+.dropzone-text { color: var(--text2); font-size: 13px; }
+.dropzone-text span { color: var(--accent); }
+.file-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.file-item {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.file-item-icon { font-size: 16px; }
+.file-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-item-size { color: var(--text2); font-size: 11px; font-family: var(--mono); }
+.file-item-remove {
+  background: none; border: none; color: var(--text2);
+  cursor: pointer; font-size: 16px; padding: 0 2px;
+  transition: color 0.2s;
+}
+.file-item-remove:hover { color: var(--danger); }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover:not(:disabled) { opacity: 0.88; }
+.btn-success { background: var(--success); color: #0a2a1e; }
+.btn-success:hover:not(:disabled) { opacity: 0.88; }
+.btn-warn { background: var(--warn); color: #2a1a00; }
+.btn-warn:hover:not(:disabled) { opacity: 0.88; }
+.btn-ghost {
+  background: var(--bg3); color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-full { width: 100%; justify-content: center; }
+.result-box {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 14px;
+  display: none;
+}
+.result-box.visible { display: block; }
+.result-box.loading { border-color: var(--accent); }
+.result-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.result-label {
+  font-size: 11px; font-family: var(--mono);
+  color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em;
+}
+.result-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.result-content {
+  font-size: 14px; line-height: 1.8;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+.result-content h3 {
+  font-size: 14px; font-weight: 700;
+  color: var(--accent); margin: 14px 0 6px;
+}
+.result-content h3:first-child { margin-top: 0; }
+.result-content ul { padding-left: 18px; }
+.result-content li { margin-bottom: 4px; }
+.result-content code {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 5px;
+  font-family: var(--mono); font-size: 12px;
+}
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.notice {
+  background: rgba(79,158,255,0.08);
+  border: 1px solid rgba(79,158,255,0.25);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text2);
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+.option-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.option-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; cursor: pointer;
+  transition: border-color 0.2s;
+}
+.option-item:hover { border-color: var(--accent); }
+.option-item input[type="radio"] { accent-color: var(--accent); }
+.option-item-label { font-size: 13px; }
+.option-item-desc { font-size: 11px; color: var(--text2); }
+.section-gap { margin-top: 14px; }
+.copy-btn {
+  background: none; border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text2);
+  padding: 4px 10px; font-size: 11px; cursor: pointer;
+  font-family: var(--mono); transition: all 0.2s;
+}
+.copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+.dl-btn {
+  background: none; border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text2);
+  padding: 4px 10px; font-size: 11px; cursor: pointer;
+  font-family: var(--mono); transition: all 0.2s;
+  text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+}
+.dl-btn:hover { border-color: var(--success); color: var(--success); }
+.url-notice {
+  background: rgba(62,207,142,0.08);
+  border: 1px solid rgba(62,207,142,0.25);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--success);
+  margin-bottom: 14px;
+  font-family: var(--mono);
+  word-break: break-all;
+}
+/* ---- GASリンクバッジ ---- */
+.image-link-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.image-link-item {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.image-link-item a {
+  color: var(--accent); text-decoration: none; flex: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.image-link-item a:hover { text-decoration: underline; }
+/* ---- 受信テキストエリア ---- */
+#d-received-text {
+  min-height: 140px;
+  font-family: var(--sans);
+  line-height: 1.7;
+}
+/* ---- 送信者バッジ ---- */
+.sender-badge {
+  display: inline-block;
+  background: rgba(79,158,255,0.15);
+  color: var(--accent);
+  border-radius: 20px;
+  padding: 2px 12px;
+  font-size: 12px;
+  font-family: var(--mono);
+  margin-bottom: 10px;
+}
+/* API Key overlay */
+.apikey-overlay {
+  position: fixed; inset: 0;
+  background: rgba(10,12,20,0.97);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+.apikey-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px 28px;
+  width: 100%; max-width: 440px;
+}
+.apikey-box h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.apikey-box p { font-size: 13px; color: var(--text2); margin-bottom: 20px; line-height: 1.6; }
+.apikey-input-wrap { position: relative; margin-bottom: 14px; }
+.apikey-input-wrap input {
+  width: 100%; padding: 12px 44px 12px 14px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  outline: none;
+  margin-bottom: 0;
+}
+.apikey-input-wrap input:focus { border-color: var(--accent); }
+.apikey-toggle {
+  position: absolute; right: 12px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  color: var(--text2); cursor: pointer; font-size: 16px;
+}
+.apikey-hint {
+  font-size: 11px; color: var(--text2);
+  font-family: var(--mono); margin-bottom: 20px;
+  padding: 8px 12px;
+  background: var(--bg3);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent);
+}
+.api-status {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-family: var(--mono);
+  color: var(--text2); cursor: pointer;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  transition: border-color 0.2s;
+}
+.api-status:hover { border-color: var(--accent); color: var(--accent); }
+.api-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--danger); }
+.api-dot.connected { background: var(--success); }
 </style>
 </head>
 <body>
@@ -414,9 +379,7 @@
       <input type="password" id="apikey-input" placeholder="sk-ant-..." autocomplete="off">
       <button class="apikey-toggle" onclick="toggleKeyVisibility()" title="表示切替">👁</button>
     </div>
-    <div class="apikey-hint">
-      ⚠️ キーはページを閉じると消えます。毎回入力が必要です。
-    </div>
+    <div class="apikey-hint">⚠️ キーはページを閉じると消えます。毎回入力が必要です。</div>
     <button class="btn btn-primary btn-full" onclick="saveApiKey()">接続する</button>
   </div>
 </div>
@@ -434,9 +397,9 @@
 </div>
 
 <div class="tabs">
-  <button class="tab active" onclick="switchTab('diag')">🔍 AI診断</button>
-  <button class="tab" onclick="switchTab('fix')">🔧 文字化け修復</button>
-  <button class="tab" onclick="switchTab('pdf')">📄 PDF操作</button>
+  <button class="tab active" onclick="switchTab('diag', this)">🔍 AI診断</button>
+  <button class="tab" onclick="switchTab('fix', this)">🔧 文字化け修復</button>
+  <button class="tab" onclick="switchTab('pdf', this)">📄 PDF操作</button>
 </div>
 
 <div class="main">
@@ -444,73 +407,41 @@
   <!-- ========== TAB 1: AI診断 ========== -->
   <div class="panel active" id="tab-diag">
 
-    <!-- フォーム自動読み込み通知 -->
+    <!-- GAS受信通知 -->
     <div id="auto-loaded-notice" class="url-notice" style="display:none">
-      ✅ フォームの回答を自動読み込みしました
+      ✅ フォームの回答を受信しました
     </div>
 
+    <!-- フォーム回答表示・編集 -->
     <div class="card">
       <div class="card-title">フォーム回答内容</div>
-
-      <div id="form-preview" class="form-data-preview" style="display:none"></div>
-
-      <div class="grid2">
-        <div>
-          <label>カテゴリ（質問1）</label>
-          <select id="d-category">
-            <option value="">選択してください</option>
-            <option>データの保存・削除・共有</option>
-            <option>画像・動画ファイルの編集</option>
-            <option>Excelデータの編集や保存</option>
-            <option>PDFデータの編集や保存</option>
-            <option>メール関連</option>
-            <option>OneDrive関連</option>
-            <option>その他</option>
-          </select>
-        </div>
-        <div>
-          <label>症状（質問2）</label>
-          <select id="d-symptom">
-            <option value="">選択してください</option>
-            <option>エラー表示が出た</option>
-            <option>ファイルが開かない・保存できない</option>
-            <option>動作が止まった・固まった</option>
-            <option>データが消えた・見つからない</option>
-            <option>その他</option>
-          </select>
-        </div>
+      <div id="sender-area" style="display:none">
+        <div class="sender-badge" id="sender-badge">👤 送信者：—</div>
       </div>
-
-      <div class="grid2">
-        <div>
-          <label>端末（質問3）</label>
-          <select id="d-device">
-            <option value="">選択してください</option>
-            <option>共有PC</option>
-            <option>亀井デスクトップPC</option>
-            <option>竹内デスクトップPC</option>
-            <option>阿部ノートPC</option>
-            <option>その他</option>
-          </select>
-        </div>
-        <div>
-          <label>発生時期（質問4）</label>
-          <select id="d-timing">
-            <option value="">選択してください</option>
-            <option>今日初めて起きた</option>
-            <option>以前から</option>
-            <option>いつからかわからない</option>
-          </select>
-        </div>
-      </div>
-
-      <label>補足・詳細（任意）</label>
-      <textarea id="d-note" placeholder="フォームの自由記述欄の内容や、気になる点を追記してください"></textarea>
+      <label>受信内容（編集可能）</label>
+      <textarea id="d-received-text" placeholder="GASからフォーム回答が自動入力されます。&#10;手動で入力・編集することもできます。&#10;&#10;例：&#10;送信者：田中&#10;カテゴリ：Excelデータの編集や保存&#10;症状：ファイルが開かない・保存できない&#10;端末：共有PC&#10;発生時期：今日初めて起きた"></textarea>
     </div>
 
+    <!-- 補足入力 -->
     <div class="card">
-      <div class="card-title">スクリーンショット・添付ファイル</div>
-      <div class="notice">LINEで届いた画像や、問題のファイルをここにアップロードしてください（複数可）</div>
+      <div class="card-title">補足・追記</div>
+      <label>ヒアリング後の追加情報・気になる点</label>
+      <textarea id="d-note" placeholder="例：本人に確認したところ、昨日Windowsアップデートが走っていた。Excelのバージョンは2019。"></textarea>
+    </div>
+
+    <!-- 添付ファイル -->
+    <div class="card">
+      <div class="card-title">添付ファイル・画像</div>
+
+      <!-- フォームの画像リンク（GASから受信） -->
+      <div id="form-image-links-area" style="display:none">
+        <label>フォーム添付画像（Googleドライブ）</label>
+        <div class="image-link-list" id="form-image-links"></div>
+      </div>
+
+      <!-- 追加アップロード -->
+      <label>追加アップロード（スクリーンショット・ファイルなど）</label>
+      <div class="notice">画像はそのままClaude APIに送信されます。PDF・Excel等はテキスト抽出して診断に使用します。</div>
       <div class="dropzone" id="diag-drop">
         <input type="file" id="diag-file" multiple accept="image/*,.pdf,.xlsx,.xls,.docx,.doc,.txt,.csv,.zip" onchange="handleFiles('diag', this.files)">
         <div class="dropzone-icon">📂</div>
@@ -526,7 +457,10 @@
     <div class="result-box" id="diag-result">
       <div class="result-header">
         <span class="result-label">診断結果</span>
-        <button class="copy-btn" onclick="copyResult('diag-result-content')">コピー</button>
+        <div class="result-actions">
+          <button class="copy-btn" onclick="copyResult('diag-result-content')">📋 コピー</button>
+          <button class="dl-btn" onclick="downloadResult()">⬇️ TXTダウンロード</button>
+        </div>
       </div>
       <div class="result-content" id="diag-result-content"></div>
     </div>
@@ -537,22 +471,18 @@
     <div class="card">
       <div class="card-title">文字化けファイルの修復</div>
       <div class="notice">文字化けしているファイルをアップロードすると、AIが文字コードを判定して修復します。<br>対応形式：CSV・TXT・XML など文字ベースのファイル</div>
-
       <div class="dropzone" id="fix-drop">
         <input type="file" id="fix-file" accept=".csv,.txt,.xml,.tsv,.json" onchange="handleFiles('fix', this.files)">
         <div class="dropzone-icon">🔤</div>
         <div class="dropzone-text">文字化けファイルをアップロード<br><span>CSV・TXT・XML・JSON など</span></div>
       </div>
       <div class="file-list" id="fix-filelist"></div>
-
       <label>補足情報（任意）</label>
       <textarea id="fix-note" placeholder="例：Excelで開いたら文字化けした、ZIPを解凍したら読めなかった など"></textarea>
     </div>
-
     <button class="btn btn-warn btn-full" id="fix-btn" onclick="runFix()">
       🔧 文字化けを診断・修復
     </button>
-
     <div class="result-box" id="fix-result">
       <div class="result-header">
         <span class="result-label">修復結果</span>
@@ -567,14 +497,12 @@
   <div class="panel" id="tab-pdf">
     <div class="card">
       <div class="card-title">PDF操作</div>
-
       <div class="dropzone" id="pdf-drop">
         <input type="file" id="pdf-file" accept=".pdf" multiple onchange="handleFiles('pdf', this.files)">
         <div class="dropzone-icon">📄</div>
         <div class="dropzone-text">PDFファイルをアップロード<br><span>複数ファイルの結合も可能</span></div>
       </div>
       <div class="file-list" id="pdf-filelist"></div>
-
       <label style="margin-top:4px">操作を選択</label>
       <div class="option-group" id="pdf-options">
         <label class="option-item">
@@ -606,15 +534,12 @@
           </div>
         </label>
       </div>
-
       <label>ページ指定（任意）</label>
       <input type="text" id="pdf-pages" placeholder="例：1-3（分解・抽出時に特定ページのみ処理）">
     </div>
-
     <button class="btn btn-success btn-full" id="pdf-btn" onclick="runPdf()">
       📄 PDF操作を実行
     </button>
-
     <div class="result-box" id="pdf-result">
       <div class="result-header">
         <span class="result-label">処理結果</span>
@@ -628,7 +553,7 @@
 </div><!-- /main -->
 
 <script>
-// ========== API Key Management ==========
+// ========== API Key ==========
 let CLAUDE_API_KEY = '';
 
 function saveApiKey() {
@@ -658,7 +583,6 @@ function toggleKeyVisibility() {
   input.type = input.type === 'password' ? 'text' : 'password';
 }
 
-// Enterキーで接続
 document.getElementById('apikey-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') saveApiKey();
 });
@@ -671,42 +595,42 @@ const state = {
 };
 
 // ========== Tab switching ==========
-function switchTab(name) {
+function switchTab(name, btn) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  event.target.classList.add('active');
+  btn.classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
 }
 
 // ========== File handling ==========
-const fileIcons = {
-  'image': '🖼️', 'pdf': '📄', 'excel': '📊', 'word': '📝',
-  'csv': '📋', 'txt': '📃', 'zip': '📦', 'other': '📎'
-};
 function getFileIcon(name) {
   const ext = name.split('.').pop().toLowerCase();
-  if (['jpg','jpeg','png','gif','webp','bmp'].includes(ext)) return fileIcons.image;
-  if (ext === 'pdf') return fileIcons.pdf;
-  if (['xlsx','xls'].includes(ext)) return fileIcons.excel;
-  if (['docx','doc'].includes(ext)) return fileIcons.word;
-  if (['csv','tsv'].includes(ext)) return fileIcons.csv;
-  if (['txt','xml','json'].includes(ext)) return fileIcons.txt;
-  if (['zip','rar','7z'].includes(ext)) return fileIcons.zip;
-  return fileIcons.other;
+  if (['jpg','jpeg','png','gif','webp','bmp'].includes(ext)) return '🖼️';
+  if (ext === 'pdf') return '📄';
+  if (['xlsx','xls'].includes(ext)) return '📊';
+  if (['docx','doc'].includes(ext)) return '📝';
+  if (['csv','tsv'].includes(ext)) return '📋';
+  if (['txt','xml','json'].includes(ext)) return '📃';
+  if (['zip','rar','7z'].includes(ext)) return '📦';
+  return '📎';
 }
+
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
   return (bytes/1024/1024).toFixed(1) + ' MB';
 }
+
 function handleFiles(tab, fileList) {
   Array.from(fileList).forEach(f => state[tab].files.push(f));
   renderFileList(tab);
 }
+
 function removeFile(tab, idx) {
   state[tab].files.splice(idx, 1);
   renderFileList(tab);
 }
+
 function renderFileList(tab) {
   const el = document.getElementById(tab + '-filelist');
   el.innerHTML = state[tab].files.map((f, i) => `
@@ -741,6 +665,7 @@ function fileToBase64(file) {
     r.readAsDataURL(file);
   });
 }
+
 function fileToText(file) {
   return new Promise((res, rej) => {
     const r = new FileReader();
@@ -749,6 +674,7 @@ function fileToText(file) {
     r.readAsText(file, 'UTF-8');
   });
 }
+
 function fileToArrayBuffer(file) {
   return new Promise((res, rej) => {
     const r = new FileReader();
@@ -758,7 +684,7 @@ function fileToArrayBuffer(file) {
   });
 }
 
-// ========== Claude API call ==========
+// ========== Claude API ==========
 async function callClaude(messages, maxTokens = 1500) {
   if (!CLAUDE_API_KEY) {
     document.getElementById('apikey-overlay').style.display = 'flex';
@@ -787,14 +713,14 @@ async function callClaude(messages, maxTokens = 1500) {
 function showLoading(resultId) {
   const box = document.getElementById(resultId);
   box.classList.add('visible', 'loading');
-  const content = document.getElementById(resultId + '-content');
-  content.innerHTML = '<span class="spinner"></span> 診断中...';
+  document.getElementById(resultId + '-content').innerHTML =
+    '<span class="spinner"></span> 診断中...';
 }
+
 function showResult(resultId, text) {
   const box = document.getElementById(resultId);
   box.classList.remove('loading');
   const content = document.getElementById(resultId + '-content');
-  // Simple markdown-like rendering
   let html = text
     .replace(/###\s(.+)/g, '<h3>$1</h3>')
     .replace(/##\s(.+)/g, '<h3>$1</h3>')
@@ -806,32 +732,52 @@ function showResult(resultId, text) {
     .replace(/\n/g, '<br>');
   content.innerHTML = html;
 }
+
 function showError(resultId, msg) {
   const box = document.getElementById(resultId);
   box.classList.remove('loading');
   document.getElementById(resultId + '-content').innerHTML =
     `<span style="color:var(--danger)">❌ エラー: ${msg}</span>`;
 }
+
 function copyResult(contentId) {
   const text = document.getElementById(contentId).innerText;
   navigator.clipboard.writeText(text).then(() => {
     const btn = event.target;
+    const orig = btn.textContent;
     btn.textContent = '✅ コピー済み';
-    setTimeout(() => btn.textContent = 'コピー', 1500);
+    setTimeout(() => btn.textContent = orig, 1500);
   });
+}
+
+// ========== TXTダウンロード ==========
+function downloadResult() {
+  const text = document.getElementById('diag-result-content').innerText;
+  if (!text || text === '診断中...') return;
+
+  // 送信者名・日時をファイル名に使用
+  const sender = document.getElementById('sender-badge').textContent.replace('👤 送信者：', '').trim() || '不明';
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+  const filename = `診断結果_${sender}_${dateStr}.txt`;
+
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ========== TAB 1: AI診断 ==========
 async function runDiagnosis() {
-  const category = document.getElementById('d-category').value;
-  const symptom  = document.getElementById('d-symptom').value;
-  const device   = document.getElementById('d-device').value;
-  const timing   = document.getElementById('d-timing').value;
-  const note     = document.getElementById('d-note').value;
-  const files    = state.diag.files;
+  const receivedText = document.getElementById('d-received-text').value.trim();
+  const note = document.getElementById('d-note').value.trim();
+  const files = state.diag.files;
 
-  if (!category && !symptom && files.length === 0) {
-    alert('カテゴリか症状を選択するか、ファイルをアップロードしてください。');
+  if (!receivedText && files.length === 0) {
+    alert('フォーム回答内容を入力するか、ファイルをアップロードしてください。');
     return;
   }
 
@@ -841,21 +787,15 @@ async function runDiagnosis() {
   try {
     const content = [];
 
-    // Text prompt
-    const info = [
-      category && `カテゴリ: ${category}`,
-      symptom  && `症状: ${symptom}`,
-      device   && `端末: ${device}`,
-      timing   && `発生時期: ${timing}`,
-      note     && `補足: ${note}`,
-    ].filter(Boolean).join('\n');
+    // テキストプロンプト組み立て
+    let prompt = `あなたは社内PCサポートの専門家です。以下のトラブル情報をもとに診断してください。\n\n`;
+    if (receivedText) prompt += `【フォーム回答内容】\n${receivedText}\n\n`;
+    if (note) prompt += `【補足・追記情報】\n${note}\n\n`;
+    prompt += `以下の構成で回答してください：\n### 原因の候補\n（考えられる原因を1〜3個）\n### 確認すべきこと\n（すぐに確認できる項目）\n### 対処手順\n（番号付きで具体的に、PC初心者向けにわかりやすく）\n### 注意点\n（あれば）`;
 
-    content.push({
-      type: 'text',
-      text: `あなたは社内PCサポートの専門家です。以下のトラブル情報をもとに診断してください。\n\n${info}\n\n以下の構成で回答してください：\n### 原因の候補\n（考えられる原因を1〜3個）\n### 確認すべきこと\n（すぐに確認できる項目）\n### 対処手順\n（番号付きで具体的に）\n### 注意点\n（あれば）`
-    });
+    content.push({ type: 'text', text: prompt });
 
-    // Image files
+    // 画像ファイルを追加
     for (const f of files) {
       const ext = f.name.split('.').pop().toLowerCase();
       if (['jpg','jpeg','png','gif','webp'].includes(ext)) {
@@ -868,6 +808,7 @@ async function runDiagnosis() {
 
     const result = await callClaude([{ role: 'user', content }]);
     showResult('diag-result', result);
+
   } catch(e) {
     showError('diag-result', e.message);
   } finally {
@@ -878,12 +819,8 @@ async function runDiagnosis() {
 // ========== TAB 2: 文字化け修復 ==========
 async function runFix() {
   const files = state.fix.files;
-  const note  = document.getElementById('fix-note').value;
-
-  if (files.length === 0) {
-    alert('ファイルをアップロードしてください。');
-    return;
-  }
+  const note = document.getElementById('fix-note').value;
+  if (files.length === 0) { alert('ファイルをアップロードしてください。'); return; }
 
   showLoading('fix-result');
   document.getElementById('fix-btn').disabled = true;
@@ -891,7 +828,6 @@ async function runFix() {
 
   try {
     const f = files[0];
-    // Try reading with different encodings
     const encodings = ['UTF-8', 'Shift_JIS', 'EUC-JP', 'ISO-2022-JP'];
     let bestText = '';
     let bestEnc = 'UTF-8';
@@ -901,11 +837,10 @@ async function runFix() {
         const ab = await fileToArrayBuffer(f);
         const decoder = new TextDecoder(enc, { fatal: true });
         const text = decoder.decode(ab);
-        if (!text.includes('')) { bestText = text; bestEnc = enc; break; }
+        if (!text.includes('\uFFFD')) { bestText = text; bestEnc = enc; break; }
       } catch(e) { /* try next */ }
     }
 
-    // If still garbled, try Shift-JIS as fallback
     if (!bestText) {
       const ab = await fileToArrayBuffer(f);
       try {
@@ -922,14 +857,12 @@ async function runFix() {
     const result = await callClaude([{ role: 'user', content: [{ type: 'text', text: prompt }] }]);
     showResult('fix-result', result);
 
-    // Offer download of re-encoded file
     const blob = new Blob([new TextEncoder().encode(bestText)], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const fname = f.name.replace(/\.[^.]+$/, '') + '_fixed.txt';
     document.getElementById('fix-download-area').innerHTML = `
-      <a href="${url}" download="${fname}" class="btn btn-success btn-sm">
-        ⬇️ 修復ファイルをダウンロード（UTF-8）
-      </a>`;
+      <a href="${url}" download="${fname}" class="btn btn-success btn-sm">⬇️ 修復ファイルをダウンロード（UTF-8）</a>`;
+
   } catch(e) {
     showError('fix-result', e.message);
   } finally {
@@ -940,13 +873,9 @@ async function runFix() {
 // ========== TAB 3: PDF操作 ==========
 async function runPdf() {
   const files = state.pdf.files;
-  const op    = document.querySelector('input[name="pdf-op"]:checked').value;
+  const op = document.querySelector('input[name="pdf-op"]:checked').value;
   const pages = document.getElementById('pdf-pages').value;
-
-  if (files.length === 0) {
-    alert('PDFファイルをアップロードしてください。');
-    return;
-  }
+  if (files.length === 0) { alert('PDFファイルをアップロードしてください。'); return; }
 
   showLoading('pdf-result');
   document.getElementById('pdf-btn').disabled = true;
@@ -956,7 +885,6 @@ async function runPdf() {
     const opLabels = { split: 'ページ分解', merge: '結合', compress: '圧縮', extract: 'テキスト抽出' };
     const fileNames = files.map(f => f.name).join(', ');
 
-    // For extract: read as base64 and send to Claude
     if (op === 'extract') {
       const f = files[0];
       const b64 = await fileToBase64(f);
@@ -971,15 +899,13 @@ async function runPdf() {
       const blob = new Blob([result], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       document.getElementById('pdf-download-area').innerHTML = `
-        <a href="${url}" download="${files[0].name.replace('.pdf','')}_text.txt" class="btn btn-success btn-sm">
-          ⬇️ テキストをダウンロード
-        </a>`;
+        <a href="${url}" download="${files[0].name.replace('.pdf','')}_text.txt" class="btn btn-success btn-sm">⬇️ テキストをダウンロード</a>`;
     } else {
-      // For split/merge/compress: explain procedure via AI
       const prompt = `PDFの操作について手順を教えてください。\n操作: ${opLabels[op]}\nファイル: ${fileNames}\n${pages ? 'ページ指定: ' + pages : ''}\n\nWindows 11環境で無料で実行できる方法を、具体的な手順で説明してください。ブラウザやMicrosoft Edgeで操作できる方法を優先してください。`;
       const result = await callClaude([{ role: 'user', content: [{ type: 'text', text: prompt }] }]);
       showResult('pdf-result', result);
     }
+
   } catch(e) {
     showError('pdf-result', e.message);
   } finally {
@@ -987,42 +913,101 @@ async function runPdf() {
   }
 }
 
-// ========== URL Params auto-load (from Google Apps Script) ==========
+// ========== URLパラメータ自動読み込み（GAS Web Appから） ==========
 (function() {
   const params = new URLSearchParams(window.location.search);
-  const category = params.get('category');
-  const symptom  = params.get('symptom');
-  const device   = params.get('device');
-  const timing   = params.get('timing');
-  const note     = params.get('note');
 
-  if (category || symptom || device || timing) {
-    if (category) document.getElementById('d-category').value = category;
-    if (symptom)  document.getElementById('d-symptom').value  = symptom;
-    if (device)   document.getElementById('d-device').value   = device;
-    if (timing)   document.getElementById('d-timing').value   = timing;
-    if (note)     document.getElementById('d-note').value     = note;
+  // GASから送られる統合テキスト形式
+  const data = params.get('data'); // JSON文字列 or テキスト
 
+  // 後方互換：個別パラメータ対応（旧URLパラメータ方式）
+  const name     = params.get('name')     || '';
+  const category = params.get('category') || '';
+  const symptom  = params.get('symptom')  || '';
+  const device   = params.get('device')   || '';
+  const timing   = params.get('timing')   || '';
+  const note     = params.get('note')     || '';
+  const imageUrl = params.get('imageUrl') || ''; // GASから渡す画像URL
+
+  if (data) {
+    // GAS Web App方式：JSON or テキストをそのまま表示
+    try {
+      const parsed = JSON.parse(decodeURIComponent(data));
+      let text = '';
+      if (parsed.name)     text += `送信者：${parsed.name}\n`;
+      if (parsed.category) text += `カテゴリ：${parsed.category}\n`;
+      if (parsed.symptom)  text += `症状：${parsed.symptom}\n`;
+      if (parsed.device)   text += `端末：${parsed.device}\n`;
+      if (parsed.timing)   text += `発生時期：${parsed.timing}\n`;
+      if (parsed.note)     text += `\n詳細・自由記述：\n${parsed.note}`;
+      document.getElementById('d-received-text').value = text.trim();
+
+      if (parsed.name) {
+        document.getElementById('sender-area').style.display = 'block';
+        document.getElementById('sender-badge').textContent = `👤 送信者：${parsed.name}`;
+      }
+      if (parsed.imageUrls && parsed.imageUrls.length > 0) {
+        showImageLinks(parsed.imageUrls);
+      }
+    } catch(e) {
+      // JSONでなければそのままテキストとして表示
+      document.getElementById('d-received-text').value = decodeURIComponent(data);
+    }
     document.getElementById('auto-loaded-notice').style.display = 'block';
 
-    // Show preview
-    const rows = [
-      category && { k: 'カテゴリ', v: category },
-      symptom  && { k: '症状', v: symptom },
-      device   && { k: '端末', v: device },
-      timing   && { k: '発生時期', v: timing },
-      note     && { k: '補足', v: note },
-    ].filter(Boolean);
+  } else if (name || category || symptom || device || timing) {
+    // 旧パラメータ方式（後方互換）
+    let text = '';
+    if (name)     text += `送信者：${name}\n`;
+    if (category) text += `カテゴリ：${category}\n`;
+    if (symptom)  text += `症状：${symptom}\n`;
+    if (device)   text += `端末：${device}\n`;
+    if (timing)   text += `発生時期：${timing}\n`;
+    if (note)     text += `\n詳細：\n${note}`;
+    document.getElementById('d-received-text').value = text.trim();
 
-    if (rows.length) {
-      const preview = document.getElementById('form-preview');
-      preview.style.display = 'block';
-      preview.innerHTML = rows.map(r =>
-        `<div class="fdp-row"><span class="fdp-key">${r.k}</span><span class="fdp-val">${r.v}</span></div>`
-      ).join('');
+    if (name) {
+      document.getElementById('sender-area').style.display = 'block';
+      document.getElementById('sender-badge').textContent = `👤 送信者：${name}`;
     }
+    if (imageUrl) showImageLinks([imageUrl]);
+    document.getElementById('auto-loaded-notice').style.display = 'block';
   }
 })();
+
+// ========== 画像リンク表示 ==========
+function showImageLinks(urls) {
+  const area = document.getElementById('form-image-links-area');
+  const list = document.getElementById('form-image-links');
+  area.style.display = 'block';
+  list.innerHTML = urls.map((url, i) => `
+    <div class="image-link-item">
+      <span>🖼️</span>
+      <a href="${url}" target="_blank" rel="noopener">フォーム添付画像 ${i+1}（Googleドライブで開く）</a>
+    </div>
+  `).join('');
+}
+
+// GAS Web Appからpostmessageで受信する場合の対応
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'formData') {
+    const d = e.data.payload;
+    let text = '';
+    if (d.name)     text += `送信者：${d.name}\n`;
+    if (d.category) text += `カテゴリ：${d.category}\n`;
+    if (d.symptom)  text += `症状：${d.symptom}\n`;
+    if (d.device)   text += `端末：${d.device}\n`;
+    if (d.timing)   text += `発生時期：${d.timing}\n`;
+    if (d.note)     text += `\n詳細：\n${d.note}`;
+    document.getElementById('d-received-text').value = text.trim();
+    document.getElementById('auto-loaded-notice').style.display = 'block';
+    if (d.name) {
+      document.getElementById('sender-area').style.display = 'block';
+      document.getElementById('sender-badge').textContent = `👤 送信者：${d.name}`;
+    }
+    if (d.imageUrls) showImageLinks(d.imageUrls);
+  }
+});
 </script>
 </body>
 </html>
