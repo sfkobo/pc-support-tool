@@ -331,15 +331,105 @@
     font-family: var(--mono);
     word-break: break-all;
   }
+
+  /* API Key overlay */
+  .apikey-overlay {
+    position: fixed; inset: 0;
+    background: rgba(10,12,20,0.97);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  .apikey-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 28px;
+    width: 100%; max-width: 440px;
+  }
+  .apikey-box h2 {
+    font-size: 18px; font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .apikey-box p {
+    font-size: 13px; color: var(--text2);
+    margin-bottom: 20px; line-height: 1.6;
+  }
+  .apikey-input-wrap {
+    position: relative; margin-bottom: 14px;
+  }
+  .apikey-input-wrap input {
+    width: 100%; padding: 12px 44px 12px 14px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+    margin-bottom: 0;
+  }
+  .apikey-input-wrap input:focus { border-color: var(--accent); }
+  .apikey-toggle {
+    position: absolute; right: 12px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none;
+    color: var(--text2); cursor: pointer; font-size: 16px;
+  }
+  .apikey-hint {
+    font-size: 11px; color: var(--text2);
+    font-family: var(--mono); margin-bottom: 20px;
+    padding: 8px 12px;
+    background: var(--bg3);
+    border-radius: 6px;
+    border-left: 3px solid var(--accent);
+  }
+  /* API key status in header */
+  .api-status {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; font-family: var(--mono);
+    color: var(--text2); cursor: pointer;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    transition: border-color 0.2s;
+  }
+  .api-status:hover { border-color: var(--accent); color: var(--accent); }
+  .api-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--danger);
+  }
+  .api-dot.connected { background: var(--success); }
 </style>
 </head>
 <body>
+
+<!-- APIキー入力オーバーレイ -->
+<div class="apikey-overlay" id="apikey-overlay">
+  <div class="apikey-box">
+    <h2>🔑 APIキーを入力</h2>
+    <p>このツールを使用するにはClaude APIキーが必要です。入力したキーはこのブラウザのメモリのみに保持され、外部に送信・保存されません。</p>
+    <div class="apikey-input-wrap">
+      <input type="password" id="apikey-input" placeholder="sk-ant-..." autocomplete="off">
+      <button class="apikey-toggle" onclick="toggleKeyVisibility()" title="表示切替">👁</button>
+    </div>
+    <div class="apikey-hint">
+      ⚠️ キーはページを閉じると消えます。毎回入力が必要です。
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveApiKey()">接続する</button>
+  </div>
+</div>
 
 <div class="header">
   <div class="header-icon">🖥️</div>
   <div>
     <h1>PC サポート診断ツール</h1>
     <div class="header-sub">remote support assistant</div>
+  </div>
+  <div class="api-status" id="api-status" onclick="resetApiKey()" title="クリックでAPIキーを再入力">
+    <span class="api-dot" id="api-dot"></span>
+    <span id="api-status-text">未接続</span>
   </div>
 </div>
 
@@ -538,6 +628,41 @@
 </div><!-- /main -->
 
 <script>
+// ========== API Key Management ==========
+let CLAUDE_API_KEY = '';
+
+function saveApiKey() {
+  const key = document.getElementById('apikey-input').value.trim();
+  if (!key.startsWith('sk-ant-')) {
+    alert('正しいAPIキーを入力してください（sk-ant-で始まる文字列）');
+    return;
+  }
+  CLAUDE_API_KEY = key;
+  document.getElementById('apikey-overlay').style.display = 'none';
+  document.getElementById('api-dot').classList.add('connected');
+  document.getElementById('api-status-text').textContent = '接続済み';
+}
+
+function resetApiKey() {
+  if (confirm('APIキーをリセットして再入力しますか？')) {
+    CLAUDE_API_KEY = '';
+    document.getElementById('apikey-input').value = '';
+    document.getElementById('apikey-overlay').style.display = 'flex';
+    document.getElementById('api-dot').classList.remove('connected');
+    document.getElementById('api-status-text').textContent = '未接続';
+  }
+}
+
+function toggleKeyVisibility() {
+  const input = document.getElementById('apikey-input');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+// Enterキーで接続
+document.getElementById('apikey-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveApiKey();
+});
+
 // ========== State ==========
 const state = {
   diag: { files: [] },
@@ -635,9 +760,18 @@ function fileToArrayBuffer(file) {
 
 // ========== Claude API call ==========
 async function callClaude(messages, maxTokens = 1500) {
+  if (!CLAUDE_API_KEY) {
+    document.getElementById('apikey-overlay').style.display = 'flex';
+    throw new Error('APIキーが設定されていません');
+  }
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': CLAUDE_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: maxTokens,
