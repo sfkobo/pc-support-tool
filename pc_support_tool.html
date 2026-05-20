@@ -309,6 +309,112 @@ select option { background: var(--bg3); }
   font-family: var(--mono);
   margin-bottom: 10px;
 }
+/* ---- チャット ---- */
+.chat-section {
+  display: none;
+  margin-top: 14px;
+}
+.chat-section.visible { display: block; }
+.chat-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.chat-label {
+  font-size: 12px; font-family: var(--mono);
+  color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em;
+}
+.chat-reset-btn {
+  background: none; border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text2);
+  padding: 3px 10px; font-size: 11px; cursor: pointer;
+  font-family: var(--mono); transition: all 0.2s;
+}
+.chat-reset-btn:hover { border-color: var(--danger); color: var(--danger); }
+.chat-log {
+  display: flex; flex-direction: column; gap: 10px;
+  margin-bottom: 12px;
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.chat-bubble {
+  display: flex; flex-direction: column; gap: 3px;
+  max-width: 88%;
+}
+.chat-bubble.user { align-self: flex-end; align-items: flex-end; }
+.chat-bubble.assistant { align-self: flex-start; align-items: flex-start; }
+.bubble-role {
+  font-size: 10px; font-family: var(--mono);
+  color: var(--text2); letter-spacing: 0.05em;
+}
+.bubble-body {
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.75;
+}
+.chat-bubble.user .bubble-body {
+  background: rgba(79,158,255,0.15);
+  border: 1px solid rgba(79,158,255,0.3);
+  color: var(--text);
+  border-top-right-radius: 4px;
+}
+.chat-bubble.assistant .bubble-body {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-top-left-radius: 4px;
+}
+.bubble-body h3 {
+  font-size: 13px; font-weight: 700;
+  color: var(--accent); margin: 10px 0 4px;
+}
+.bubble-body h3:first-child { margin-top: 0; }
+.bubble-body ul { padding-left: 16px; }
+.bubble-body li { margin-bottom: 3px; }
+.bubble-body code {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 5px;
+  font-family: var(--mono); font-size: 11px;
+}
+.bubble-actions {
+  display: flex; gap: 6px; margin-top: 4px;
+}
+.chat-input-area {
+  display: flex; gap: 8px; align-items: flex-end;
+}
+.chat-input-area textarea {
+  flex: 1; min-height: 72px; margin-bottom: 0;
+  font-size: 13px;
+}
+.chat-send-btn {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+  align-self: flex-end;
+  height: 42px;
+}
+.chat-send-btn:hover:not(:disabled) { opacity: 0.85; }
+.chat-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.chat-hint {
+  font-size: 11px; color: var(--text2);
+  margin-top: 6px; line-height: 1.6;
+  font-family: var(--mono);
+}
+.last-answer-actions {
+  display: flex; gap: 8px; margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
 /* API Key overlay */
 .apikey-overlay {
   position: fixed; inset: 0;
@@ -451,18 +557,33 @@ select option { background: var(--bg3); }
     </div>
 
     <button class="btn btn-primary btn-full" id="diag-btn" onclick="runDiagnosis()">
-      🔍 AI診断を実行
+      🔍 STEP 1：原因の候補と確認事項を診断
     </button>
 
+    <!-- STEP1 結果（原因候補・確認事項） -->
     <div class="result-box" id="diag-result">
       <div class="result-header">
-        <span class="result-label">診断結果</span>
-        <div class="result-actions">
-          <button class="copy-btn" onclick="copyResult('diag-result-content')">📋 コピー</button>
-          <button class="dl-btn" onclick="downloadResult()">⬇️ TXTダウンロード</button>
-        </div>
+        <span class="result-label">STEP 1 ― 原因の候補 / 確認すべきこと</span>
       </div>
       <div class="result-content" id="diag-result-content"></div>
+    </div>
+
+    <!-- STEP2 チャットセクション -->
+    <div class="chat-section" id="chat-section">
+      <div class="chat-header">
+        <span class="chat-label">💬 STEP 2 ― ヒアリング後の対処手順を相談</span>
+        <button class="chat-reset-btn" onclick="resetChat()">🔄 最初からやり直す</button>
+      </div>
+      <div class="chat-log" id="chat-log"></div>
+      <div class="chat-input-area">
+        <textarea id="chat-input" placeholder="例：「ネットワークドライブに接続できていないことが確認できました。手順を教えてください」&#10;ヒアリング結果や絞り込んだ原因を入力して送信してください。"></textarea>
+        <button class="chat-send-btn" id="chat-send-btn" onclick="sendChat()">▶ 送信</button>
+      </div>
+      <div class="chat-hint">Shift+Enterで改行 / Enterで送信</div>
+      <div class="last-answer-actions" id="last-answer-actions" style="display:none">
+        <button class="copy-btn" onclick="copyLastAnswer()">📋 最新の回答をコピー</button>
+        <button class="dl-btn" onclick="downloadLastAnswer()">⬇️ TXTダウンロード</button>
+      </div>
     </div>
   </div>
 
@@ -750,27 +871,15 @@ function copyResult(contentId) {
   });
 }
 
-// ========== TXTダウンロード ==========
-function downloadResult() {
-  const text = document.getElementById('diag-result-content').innerText;
-  if (!text || text === '診断中...') return;
 
-  // 送信者名・日時をファイル名に使用
-  const sender = document.getElementById('sender-badge').textContent.replace('👤 送信者：', '').trim() || '不明';
-  const now = new Date();
-  const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
-  const filename = `診断結果_${sender}_${dateStr}.txt`;
 
-  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+// ========== TAB 1: AI診断 + チャット ==========
 
-// ========== TAB 1: AI診断 ==========
+// 会話履歴（Claude APIに渡すmessages配列）
+let chatHistory = [];
+// 最初のユーザーメッセージ内容（画像込み）を保持
+let initialUserContent = null;
+
 async function runDiagnosis() {
   const receivedText = document.getElementById('d-received-text').value.trim();
   const note = document.getElementById('d-note').value.trim();
@@ -783,15 +892,20 @@ async function runDiagnosis() {
 
   showLoading('diag-result');
   document.getElementById('diag-btn').disabled = true;
+  // チャットをリセット
+  chatHistory = [];
+  document.getElementById('chat-log').innerHTML = '';
+  document.getElementById('chat-section').classList.remove('visible');
+  document.getElementById('last-answer-actions').style.display = 'none';
 
   try {
     const content = [];
 
-    // テキストプロンプト組み立て
-    let prompt = `あなたは社内PCサポートの専門家です。以下のトラブル情報をもとに診断してください。\n\n`;
+    // システム的な文脈をユーザーメッセージに含める
+    let prompt = `あなたは社内PCサポートの専門家です。以下のトラブル情報をもとに、まず「原因の候補」と「確認すべきこと」だけを回答してください。対処手順はまだ出力しないでください。サポート担当者が被サポート者にヒアリングして原因を絞り込んでから、続きの会話で対処手順を尋ねます。\n\n`;
     if (receivedText) prompt += `【フォーム回答内容】\n${receivedText}\n\n`;
     if (note) prompt += `【補足・追記情報】\n${note}\n\n`;
-    prompt += `以下の構成で回答してください：\n### 原因の候補\n（考えられる原因を1〜3個）\n### 確認すべきこと\n（すぐに確認できる項目）\n### 対処手順\n（番号付きで具体的に、PC初心者向けにわかりやすく）\n### 注意点\n（あれば）`;
+    prompt += `以下の構成のみで回答してください（対処手順・注意点は不要）：\n### 原因の候補\n（考えられる原因を1〜3個、各原因に1〜2行の説明）\n### 確認すべきこと\n（被サポート者にすぐ確認できる項目を箇条書き）`;
 
     content.push({ type: 'text', text: prompt });
 
@@ -802,12 +916,23 @@ async function runDiagnosis() {
         const b64 = await fileToBase64(f);
         const mime = f.type || 'image/jpeg';
         content.push({ type: 'image', source: { type: 'base64', media_type: mime, data: b64 } });
-        content.push({ type: 'text', text: `上記の画像（${f.name}）も参考に診断してください。エラーメッセージが見えれば内容も分析してください。` });
+        content.push({ type: 'text', text: `上記の画像（${f.name}）も参考に診断してください。` });
       }
     }
 
+    initialUserContent = content;
     const result = await callClaude([{ role: 'user', content }]);
+
+    // 会話履歴に初回のやり取りを追加
+    chatHistory.push({ role: 'user', content });
+    chatHistory.push({ role: 'assistant', content: result });
+
     showResult('diag-result', result);
+
+    // チャットセクションを表示
+    document.getElementById('chat-section').classList.add('visible');
+    // チャットにSTEP1の結果を最初のバブルとして表示
+    appendBubble('assistant', result, false);
 
   } catch(e) {
     showError('diag-result', e.message);
@@ -815,6 +940,151 @@ async function runDiagnosis() {
     document.getElementById('diag-btn').disabled = false;
   }
 }
+
+// ========== チャット送信 ==========
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const sendBtn = document.getElementById('chat-send-btn');
+  sendBtn.disabled = true;
+  input.value = '';
+
+  // ユーザーバブル表示
+  appendBubble('user', text, false);
+
+  // ローディングバブル
+  const loadingId = 'bubble-loading-' + Date.now();
+  const loadingEl = document.createElement('div');
+  loadingEl.className = 'chat-bubble assistant';
+  loadingEl.id = loadingId;
+  loadingEl.innerHTML = `
+    <span class="bubble-role">Claude</span>
+    <div class="bubble-body"><span class="spinner"></span> 考え中...</div>
+  `;
+  document.getElementById('chat-log').appendChild(loadingEl);
+  scrollChatToBottom();
+
+  // 会話履歴にユーザー発言を追加
+  chatHistory.push({ role: 'user', content: text });
+
+  try {
+    const result = await callClaude(chatHistory, 2000);
+    chatHistory.push({ role: 'assistant', content: result });
+
+    // ローディング削除 → 結果バブル表示
+    document.getElementById(loadingId).remove();
+    appendBubble('assistant', result, true);
+    document.getElementById('last-answer-actions').style.display = 'flex';
+
+  } catch(e) {
+    document.getElementById(loadingId).remove();
+    appendBubble('assistant', `❌ エラー: ${e.message}`, false);
+  } finally {
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+// ========== バブル追加 ==========
+function appendBubble(role, text, isLatestAnswer) {
+  const log = document.getElementById('chat-log');
+  const div = document.createElement('div');
+  div.className = `chat-bubble ${role}`;
+
+  const roleLabel = role === 'user' ? 'あなた' : 'Claude';
+  const bodyHtml = renderMarkdown(text);
+
+  div.innerHTML = `
+    <span class="bubble-role">${roleLabel}</span>
+    <div class="bubble-body">${bodyHtml}</div>
+  `;
+  log.appendChild(div);
+  scrollChatToBottom();
+}
+
+function scrollChatToBottom() {
+  const log = document.getElementById('chat-log');
+  log.scrollTop = log.scrollHeight;
+}
+
+function renderMarkdown(text) {
+  return text
+    .replace(/###\s(.+)/g, '<h3>$1</h3>')
+    .replace(/##\s(.+)/g, '<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/^[\-\*]\s(.+)/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n/g, '<br>');
+}
+
+// ========== 最新回答のコピー・DL ==========
+function getLastAssistantText() {
+  // chatHistoryから最後のassistant発言を取得
+  for (let i = chatHistory.length - 1; i >= 0; i--) {
+    if (chatHistory[i].role === 'assistant') {
+      return typeof chatHistory[i].content === 'string'
+        ? chatHistory[i].content
+        : chatHistory[i].content.map(b => b.text || '').join('');
+    }
+  }
+  return '';
+}
+
+function copyLastAnswer() {
+  const text = getLastAssistantText();
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = '✅ コピー済み';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+function downloadLastAnswer() {
+  const text = getLastAssistantText();
+  if (!text) return;
+  const sender = document.getElementById('sender-badge').textContent.replace('👤 送信者：', '').trim() || '不明';
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+  const filename = `対処手順_${sender}_${dateStr}.txt`;
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ========== リセット ==========
+function resetChat() {
+  if (!confirm('診断をリセットして最初からやり直しますか？')) return;
+  chatHistory = [];
+  initialUserContent = null;
+  document.getElementById('chat-log').innerHTML = '';
+  document.getElementById('chat-section').classList.remove('visible');
+  document.getElementById('last-answer-actions').style.display = 'none';
+  document.getElementById('diag-result').classList.remove('visible','loading');
+  document.getElementById('diag-result-content').innerHTML = '';
+  document.getElementById('d-received-text').value = '';
+  document.getElementById('d-note').value = '';
+  state.diag.files = [];
+  renderFileList('diag');
+  window.scrollTo(0, 0);
+}
+
+// Enterキーで送信（Shift+Enterは改行）
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('chat-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendChat();
+    }
+  });
+});
 
 // ========== TAB 2: 文字化け修復 ==========
 async function runFix() {
