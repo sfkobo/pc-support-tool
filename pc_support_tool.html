@@ -833,14 +833,14 @@ function removeFile(tab, idx) {
 
 function renderFileList(tab) {
   const el = document.getElementById(tab + '-filelist');
-  el.innerHTML = state[tab].files.map((f, i) => `
-    <div class="file-item">
-      <span class="file-item-icon">${getFileIcon(f.name)}</span>
-      <span class="file-item-name">${f.name}</span>
-      <span class="file-item-size">${formatSize(f.size)}</span>
-      <button class="file-item-remove" onclick="removeFile('${tab}',${i})">×</button>
-    </div>
-  `).join('');
+  el.innerHTML = state[tab].files.map((f, i) => {
+    return '<div class="file-item">' +
+      '<span class="file-item-icon">' + getFileIcon(f.name) + '</span>' +
+      '<span class="file-item-name">' + f.name + '</span>' +
+      '<span class="file-item-size">' + formatSize(f.size) + '</span>' +
+      '<button class="file-item-remove" onclick="removeFile(\'' + tab + '\',' + i + ')">×</button>' +
+      '</div>';
+  }).join('');
 }
 
 // Drag & drop
@@ -1077,10 +1077,7 @@ function appendBubble(role, text, isLatestAnswer) {
   const roleLabel = role === 'user' ? 'あなた' : 'Claude';
   const bodyHtml = renderMarkdown(text);
 
-  div.innerHTML = `
-    <span class="bubble-role">${roleLabel}</span>
-    <div class="bubble-body">${bodyHtml}</div>
-  `;
+  div.innerHTML = '<span class="bubble-role">' + roleLabel + '</span><div class="bubble-body">' + bodyHtml + '</div>';
   log.appendChild(div);
   scrollChatToBottom();
 }
@@ -1342,12 +1339,9 @@ function showImageLinks(urls) {
   const area = document.getElementById('form-image-links-area');
   const list = document.getElementById('form-image-links');
   area.style.display = 'block';
-  list.innerHTML = urls.map((url, i) => `
-    <div class="image-link-item">
-      <span>🖼️</span>
-      <a href="${url}" target="_blank" rel="noopener">フォーム添付画像 ${i+1}（Googleドライブで開く）</a>
-    </div>
-  `).join('');
+  list.innerHTML = urls.map(function(url, i) {
+    return '<div class="image-link-item"><span>🖼️</span><a href="' + url + '" target="_blank" rel="noopener">フォーム添付画像 ' + (i+1) + '（Googleドライブで開く）</a></div>';
+  }).join('');
 }
 
 // GAS Web Appからpostmessageで受信する場合の対応
@@ -1430,35 +1424,33 @@ function renderHistory(items) {
     list.innerHTML = '<div class="history-empty">📭 保存された事例はまだありません</div>';
     return;
   }
-  list.innerHTML = items.map(item => {
-    const date     = item.date     || '';
-    const category = item.category || '（カテゴリなし）';
-    const symptom  = item.symptom  || '（症状なし）';
-    const chatLog  = item.chatLog  || '';
-    const last     = item.lastAnswer || '';
-    const id       = item.id || '';
-    return \`
-      <div class="history-item" id="hitem-\${id}">
-        <div class="history-item-header" onclick="toggleHistoryItem('\${id}')">
-          <div class="history-item-meta">
-            <div class="history-item-title">\${escHtml(category)}｜\${escHtml(symptom)}</div>
-            <div class="history-item-sub">\${escHtml(date)}</div>
-          </div>
-          <span class="history-item-toggle">▼</span>
-        </div>
-        <div class="history-item-body">
-          <div class="history-section-label">チャット全文</div>
-          <div class="history-text" id="chat-\${id}">\${escHtml(chatLog)}</div>
-          <div class="history-section-label">最終対処手順</div>
-          <div class="history-text" id="last-\${id}">\${escHtml(last)}</div>
-          <div class="history-actions">
-            <button class="copy-btn" onclick="copyHistoryText('\${id}')">📋 対処手順をコピー</button>
-            <button class="dl-btn" onclick="downloadHistoryText('\${id}', \`\${escHtml(category)}_\${escHtml(symptom)}\`)">⬇️ TXTダウンロード</button>
-            <button class="history-delete-btn" onclick="deleteHistoryItem('\${id}')">🗑 削除</button>
-          </div>
-        </div>
-      </div>
-    \`;
+  list.innerHTML = items.map(function(item) {
+    var date     = item.date     || '';
+    var category = item.category || '（カテゴリなし）';
+    var symptom  = item.symptom  || '（症状なし）';
+    var chatLog  = item.chatLog  || '';
+    var last     = item.lastAnswer || '';
+    var id       = item.id || '';
+    return '<div class="history-item" id="hitem-' + id + '">' +
+      '<div class="history-item-header" onclick="toggleHistoryItem(\''+id+'\')">' +
+        '<div class="history-item-meta">' +
+          '<div class="history-item-title">' + escHtml(category) + '｜' + escHtml(symptom) + '</div>' +
+          '<div class="history-item-sub">' + escHtml(date) + '</div>' +
+        '</div>' +
+        '<span class="history-item-toggle">▼</span>' +
+      '</div>' +
+      '<div class="history-item-body">' +
+        '<div class="history-section-label">チャット全文</div>' +
+        '<div class="history-text" id="chat-' + id + '">' + escHtml(chatLog) + '</div>' +
+        '<div class="history-section-label">最終対処手順</div>' +
+        '<div class="history-text" id="last-' + id + '">' + escHtml(last) + '</div>' +
+        '<div class="history-actions">' +
+          '<button class="copy-btn" onclick="copyHistoryText(\''+id+'\')">📋 対処手順をコピー</button>' +
+          '<button class="dl-btn" onclick="downloadHistoryText(\''+id+'\',\''+escHtml(category)+'_'+escHtml(symptom)+'\')">⬇️ TXTダウンロード</button>' +
+          '<button class="history-delete-btn" onclick="deleteHistoryItem(\''+id+'\')">🗑 削除</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
   }).join('');
 }
 
