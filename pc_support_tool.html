@@ -521,12 +521,12 @@ select option { background: var(--bg3); }
 <div class="apikey-overlay" id="apikey-overlay">
   <div class="apikey-box">
     <h2>🔑 APIキーを入力</h2>
-    <p>このツールを使用するにはClaude APIキーが必要です。入力したキーはこのブラウザのメモリのみに保持され、外部に送信・保存されません。</p>
+    <p>このツールを使用するにはClaude APIキーが必要です。入力したキーはこのブラウザのlocalStorageに保存され、次回から自動入力されます。外部サーバーには送信されません。</p>
     <div class="apikey-input-wrap">
       <input type="password" id="apikey-input" placeholder="sk-ant-..." autocomplete="off">
       <button class="apikey-toggle" onclick="toggleKeyVisibility()" title="表示切替">👁</button>
     </div>
-    <div class="apikey-hint">⚠️ キーはページを閉じると消えます。毎回入力が必要です。</div>
+    <div class="apikey-hint">⚠️ 同じブラウザであれば次回から自動入力されます。</div>
     <button class="btn btn-primary btn-full" onclick="saveApiKey()">接続する</button>
   </div>
 </div>
@@ -742,6 +742,18 @@ select option { background: var(--bg3); }
 // ========== API Key ==========
 let CLAUDE_API_KEY = '';
 
+// ページ読み込み時にlocalStorageから自動復元
+(function initApiKey() {
+  const saved = localStorage.getItem('claudeApiKey') || '';
+  if (saved && saved.startsWith('sk-ant-')) {
+    CLAUDE_API_KEY = saved;
+    document.getElementById('apikey-input').value = saved;
+    document.getElementById('apikey-overlay').style.display = 'none';
+    document.getElementById('api-dot').classList.add('connected');
+    document.getElementById('api-status-text').textContent = '接続済み';
+  }
+})();
+
 function saveApiKey() {
   const key = document.getElementById('apikey-input').value.trim();
   if (!key.startsWith('sk-ant-')) {
@@ -749,6 +761,7 @@ function saveApiKey() {
     return;
   }
   CLAUDE_API_KEY = key;
+  localStorage.setItem('claudeApiKey', key);
   document.getElementById('apikey-overlay').style.display = 'none';
   document.getElementById('api-dot').classList.add('connected');
   document.getElementById('api-status-text').textContent = '接続済み';
@@ -757,6 +770,7 @@ function saveApiKey() {
 function resetApiKey() {
   if (confirm('APIキーをリセットして再入力しますか？')) {
     CLAUDE_API_KEY = '';
+    localStorage.removeItem('claudeApiKey');
     document.getElementById('apikey-input').value = '';
     document.getElementById('apikey-overlay').style.display = 'flex';
     document.getElementById('api-dot').classList.remove('connected');
