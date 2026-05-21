@@ -380,6 +380,31 @@ select option { background: var(--bg3); }
 .bubble-actions {
   display: flex; gap: 6px; margin-top: 4px;
 }
+/* チェックボックス付きバブル */
+.bubble-wrap {
+  display: flex; align-items: flex-start; gap: 8px;
+  width: 100%;
+}
+.chat-bubble.user .bubble-wrap { flex-direction: row-reverse; }
+.chat-bubble.assistant .bubble-wrap { flex-direction: row; }
+.bubble-check {
+  flex-shrink: 0; margin-top: 24px;
+  width: 16px; height: 16px;
+  accent-color: var(--accent); cursor: pointer;
+}
+.bubble-inner { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; max-width: 88%; }
+.chat-bubble.user .bubble-inner { align-items: flex-end; }
+.chat-bubble.assistant .bubble-inner { align-items: flex-start; }
+.select-actions {
+  display: none; gap: 8px; margin-top: 10px;
+  padding: 10px 14px;
+  background: var(--bg3);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  align-items: center; flex-wrap: wrap;
+}
+.select-actions.visible { display: flex; }
+.select-count { font-size: 12px; font-family: var(--mono); color: var(--accent); margin-right: 4px; }
 .chat-input-area {
   display: flex; gap: 8px; align-items: flex-end;
 }
@@ -619,9 +644,12 @@ select option { background: var(--bg3); }
         <button class="chat-send-btn" id="chat-send-btn" onclick="sendChat()">▶ 送信</button>
       </div>
       <div class="chat-hint">Shift+Enterで改行 / Enterで送信</div>
-      <div class="last-answer-actions" id="last-answer-actions" style="display:none">
-        <button class="copy-btn" onclick="copyLastAnswer()">📋 最新の回答をコピー</button>
-        <button class="dl-btn" onclick="downloadLastAnswer()">⬇️ TXTダウンロード</button>
+      <div class="select-actions" id="select-actions">
+        <span class="select-count" id="select-count">0件選択中</span>
+        <button class="copy-btn" onclick="copySelected()">📋 選択をコピー</button>
+        <button class="dl-btn" onclick="downloadSelected()">⬇️ TXTダウンロード</button>
+        <button class="copy-btn" onclick="selectAllBubbles()">☑️ 全選択</button>
+        <button class="copy-btn" onclick="clearAllBubbles()">⬜ 選択解除</button>
       </div>
     </div>
   </div>
@@ -1057,7 +1085,7 @@ async function sendChat() {
     // ローディング削除 → 結果バブル表示
     document.getElementById(loadingId).remove();
     appendBubble('assistant', result, true);
-    document.getElementById('last-answer-actions').style.display = 'flex';
+    // 選択アクションバーはappendBubble内で表示済み
 
   } catch(e) {
     document.getElementById(loadingId).remove();
@@ -1069,17 +1097,91 @@ async function sendChat() {
 }
 
 // ========== バブル追加 ==========
+let bubbleIndex = 0;
+
 function appendBubble(role, text, isLatestAnswer) {
   const log = document.getElementById('chat-log');
   const div = document.createElement('div');
-  div.className = `chat-bubble ${role}`;
+  div.className = 'chat-bubble ' + role;
 
   const roleLabel = role === 'user' ? 'あなた' : 'Claude';
   const bodyHtml = renderMarkdown(text);
+  const idx = bubbleIndex++;
+  const checkId = 'bubble-check-' + idx;
 
-  div.innerHTML = '<span class="bubble-role">' + roleLabel + '</span><div class="bubble-body">' + bodyHtml + '</div>';
+  div.dataset.text = text;
+  div.dataset.role = role;
+  div.dataset.idx = idx;
+
+  div.innerHTML =
+    '<div class="bubble-wrap">' +
+      '<input type="checkbox" class="bubble-check" id="' + checkId + '" onchange="onBubbleCheck()">' +
+      '<div class="bubble-inner">' +
+        '<span class="bubble-role">' + roleLabel + '</span>' +
+        '<div class="bubble-body">' + bodyHtml + '</div>' +
+      '</div>' +
+    '</div>';
+
   log.appendChild(div);
   scrollChatToBottom();
+
+  // 選択アクションバーを表示
+  document.getElementById('select-actions').classList.add('visible');
+}
+
+function onBubbleCheck() {
+  const checked = document.querySelectorAll('.bubble-check:checked').length;
+  document.getElementById('select-count').textContent = checked + '件選択中';
+}
+
+function selectAllBubbles() {
+  document.querySelectorAll('.bubble-check').forEach(cb => cb.checked = true);
+  onBubbleCheck();
+}
+
+function clearAllBubbles() {
+  document.querySelectorAll('.bubble-check').forEach(cb => cb.checked = false);
+  onBubbleCheck();
+}
+
+function getSelectedText() {
+  const bubbles = document.querySelectorAll('.chat-bubble');
+  const lines = [];
+  bubbles.forEach(function(b) {
+    const cb = b.querySelector('.bubble-check');
+    if (cb && cb.checked) {
+      const role = b.dataset.role === 'user' ? '【あなた】' : '【Claude】';
+      const text = b.dataset.text || b.querySelector('.bubble-body').innerText;
+      lines.push(role + '\n' + text);
+    }
+  });
+  return lines.join('\n\n---\n\n');
+}
+
+function copySelected() {
+  const text = getSelectedText();
+  if (!text) { alert('コピーする内容を選択してください'); return; }
+  navigator.clipboard.writeText(text).then(function() {
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = '✅ コピー済み';
+    setTimeout(function() { btn.textContent = orig; }, 1500);
+  });
+}
+
+function downloadSelected() {
+  const text = getSelectedText();
+  if (!text) { alert('ダウンロードする内容を選択してください'); return; }
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth()+1).padStart(2,'0');
+  const dd = String(now.getDate()).padStart(2,'0');
+  const filename = 'サポート記録_' + yy + mm + dd + '.txt';
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
 }
 
 function scrollChatToBottom() {
@@ -1153,7 +1255,10 @@ function resetChat() {
   if (!confirm('診断をリセットして最初からやり直しますか？')) return;
   chatHistory = [];
   initialUserContent = null;
+  bubbleIndex = 0;
   document.getElementById('chat-log').innerHTML = '';
+  document.getElementById('select-actions').classList.remove('visible');
+  document.getElementById('select-count').textContent = '0件選択中';
   document.getElementById('chat-section').classList.remove('visible');
   document.getElementById('last-answer-actions').style.display = 'none';
   document.getElementById('diag-result').classList.remove('visible','loading');
