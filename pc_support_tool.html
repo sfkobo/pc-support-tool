@@ -472,6 +472,47 @@ select option { background: var(--bg3); }
 .api-status:hover { border-color: var(--accent); color: var(--accent); }
 .api-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--danger); }
 .api-dot.connected { background: var(--success); }
+
+/* ---- 過去事例タブ ---- */
+.history-toolbar {
+  display: flex; gap: 8px; align-items: center;
+  margin-bottom: 14px; flex-wrap: wrap;
+}
+.history-search {
+  flex: 1; min-width: 180px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13px;
+  padding: 8px 12px;
+  outline: none;
+  margin-bottom: 0;
+}
+.history-search:focus { border-color: var(--accent); }
+.history-count { font-size: 11px; font-family: var(--mono); color: var(--text2); white-space: nowrap; }
+.history-list { display: flex; flex-direction: column; gap: 10px; }
+.history-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.history-item-header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer; transition: background 0.15s; }
+.history-item-header:hover { background: var(--bg3); }
+.history-item-meta { flex: 1; min-width: 0; }
+.history-item-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.history-item-sub { font-size: 11px; color: var(--text2); font-family: var(--mono); margin-top: 2px; }
+.history-item-toggle { font-size: 12px; color: var(--text2); transition: transform 0.2s; flex-shrink: 0; }
+.history-item.open .history-item-toggle { transform: rotate(180deg); }
+.history-item-body { display: none; border-top: 1px solid var(--border); padding: 14px; }
+.history-item.open .history-item-body { display: block; }
+.history-section-label { font-size: 10px; font-family: var(--mono); color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; margin-top: 12px; }
+.history-section-label:first-child { margin-top: 0; }
+.history-text { background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 10px 12px; font-size: 12px; line-height: 1.75; color: var(--text); white-space: pre-wrap; max-height: 220px; overflow-y: auto; }
+.history-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+.history-delete-btn { margin-left: auto; background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--text2); padding: 4px 10px; font-size: 11px; cursor: pointer; font-family: var(--mono); transition: all 0.2s; }
+.history-delete-btn:hover { border-color: var(--danger); color: var(--danger); }
+.history-empty { text-align: center; padding: 48px 20px; color: var(--text2); font-size: 13px; line-height: 1.8; }
+.gas-url-notice { background: rgba(245,166,35,0.08); border: 1px solid rgba(245,166,35,0.3); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--warn); margin-bottom: 14px; line-height: 1.7; }
+.gas-url-input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--mono); font-size: 12px; padding: 8px 12px; outline: none; margin-bottom: 8px; }
+.gas-url-input:focus { border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -506,6 +547,7 @@ select option { background: var(--bg3); }
   <button class="tab active" onclick="switchTab('diag', this)">🔍 AI診断</button>
   <button class="tab" onclick="switchTab('fix', this)">🔧 文字化け修復</button>
   <button class="tab" onclick="switchTab('pdf', this)">📄 PDF操作</button>
+  <button class="tab" onclick="switchTab('history', this); loadHistory()">📚 過去事例</button>
 </div>
 
 <div class="main">
@@ -665,6 +707,32 @@ select option { background: var(--bg3); }
       </div>
       <div class="result-content" id="pdf-result-content"></div>
       <div id="pdf-download-area" class="section-gap"></div>
+    </div>
+  </div>
+
+
+  <!-- ========== TAB 4: 過去事例 ========== -->
+  <div class="panel" id="tab-history">
+
+    <!-- GAS Web App URL設定 -->
+    <div class="card" id="gas-url-card">
+      <div class="card-title">GAS Web App URL設定</div>
+      <div class="gas-url-notice">⚠️ 履歴の保存・取得にはGAS Web AppのURLが必要です。一度設定すると次回から自動入力されます。</div>
+      <label>GAS Web App URL</label>
+      <input class="gas-url-input" id="gas-url-input" type="text" placeholder="https://script.google.com/macros/s/xxxxxx/exec">
+      <button class="btn btn-primary btn-sm" onclick="saveGasUrl()">保存</button>
+    </div>
+
+    <!-- 検索・操作バー -->
+    <div class="history-toolbar">
+      <input class="history-search" id="history-search" type="text" placeholder="🔍 カテゴリ・症状で検索..." oninput="filterHistory()">
+      <span class="history-count" id="history-count"></span>
+      <button class="btn btn-ghost btn-sm" onclick="loadHistory()">🔄 更新</button>
+    </div>
+
+    <!-- 履歴一覧 -->
+    <div class="history-list" id="history-list">
+      <div class="history-empty">📂 読み込み中...</div>
     </div>
   </div>
 
@@ -890,6 +958,7 @@ async function runDiagnosis() {
   showLoading('diag-result');
   document.getElementById('diag-btn').disabled = true;
   // チャットをリセット
+  sessionId = generateSessionId();
   chatHistory = [];
   document.getElementById('chat-log').innerHTML = '';
   document.getElementById('chat-section').classList.remove('visible');
@@ -969,6 +1038,7 @@ async function sendChat() {
   try {
     const result = await callClaude(chatHistory, 2000);
     chatHistory.push({ role: 'assistant', content: result });
+    autoSaveHistory(); // 自動保存
 
     // ローディング削除 → 結果バブル表示
     document.getElementById(loadingId).remove();
@@ -1286,6 +1356,214 @@ window.addEventListener('message', function(e) {
     if (d.imageUrls) showImageLinks(d.imageUrls);
   }
 });
+
+// ========== 過去事例 ==========
+
+// GAS Web App URLの保存・取得
+function saveGasUrl() {
+  const url = document.getElementById('gas-url-input').value.trim();
+  if (!url.startsWith('https://script.google.com')) {
+    alert('正しいGAS Web App URLを入力してください');
+    return;
+  }
+  localStorage.setItem('gasWebAppUrl', url);
+  document.getElementById('gas-url-card').style.display = 'none';
+  alert('URLを保存しました');
+  loadHistory();
+}
+
+function getGasUrl() {
+  return localStorage.getItem('gasWebAppUrl') || '';
+}
+
+// ページ読み込み時にURLが保存済みならカードを隠す
+(function initGasUrlCard() {
+  if (getGasUrl()) {
+    const card = document.getElementById('gas-url-card');
+    if (card) card.style.display = 'none';
+    const input = document.getElementById('gas-url-input');
+    if (input) input.value = getGasUrl();
+  }
+})();
+
+// 履歴データ（フィルタ用）
+let historyItems = [];
+
+// 履歴を読み込む
+async function loadHistory() {
+  const gasUrl = getGasUrl();
+  const list = document.getElementById('history-list');
+  if (!gasUrl) {
+    list.innerHTML = '<div class="history-empty">⚠️ GAS Web App URLを設定してください</div>';
+    return;
+  }
+  list.innerHTML = '<div class="history-empty"><span class="spinner"></span> 読み込み中...</div>';
+  try {
+    const res = await fetch(gasUrl + '?action=list');
+    const data = await res.json();
+    historyItems = data.items || [];
+    renderHistory(historyItems);
+  } catch(e) {
+    list.innerHTML = '<div class="history-empty">❌ 読み込みに失敗しました<br>' + e.message + '</div>';
+  }
+}
+
+// 履歴を描画
+function renderHistory(items) {
+  const list = document.getElementById('history-list');
+  document.getElementById('history-count').textContent = items.length + ' 件';
+  if (items.length === 0) {
+    list.innerHTML = '<div class="history-empty">📭 保存された事例はまだありません</div>';
+    return;
+  }
+  list.innerHTML = items.map(item => {
+    const date     = item.date     || '';
+    const category = item.category || '（カテゴリなし）';
+    const symptom  = item.symptom  || '（症状なし）';
+    const chatLog  = item.chatLog  || '';
+    const last     = item.lastAnswer || '';
+    const id       = item.id || '';
+    return \`
+      <div class="history-item" id="hitem-\${id}">
+        <div class="history-item-header" onclick="toggleHistoryItem('\${id}')">
+          <div class="history-item-meta">
+            <div class="history-item-title">\${escHtml(category)}｜\${escHtml(symptom)}</div>
+            <div class="history-item-sub">\${escHtml(date)}</div>
+          </div>
+          <span class="history-item-toggle">▼</span>
+        </div>
+        <div class="history-item-body">
+          <div class="history-section-label">チャット全文</div>
+          <div class="history-text" id="chat-\${id}">\${escHtml(chatLog)}</div>
+          <div class="history-section-label">最終対処手順</div>
+          <div class="history-text" id="last-\${id}">\${escHtml(last)}</div>
+          <div class="history-actions">
+            <button class="copy-btn" onclick="copyHistoryText('\${id}')">📋 対処手順をコピー</button>
+            <button class="dl-btn" onclick="downloadHistoryText('\${id}', \`\${escHtml(category)}_\${escHtml(symptom)}\`)">⬇️ TXTダウンロード</button>
+            <button class="history-delete-btn" onclick="deleteHistoryItem('\${id}')">🗑 削除</button>
+          </div>
+        </div>
+      </div>
+    \`;
+  }).join('');
+}
+
+// フィルタリング
+function filterHistory() {
+  const q = document.getElementById('history-search').value.trim().toLowerCase();
+  if (!q) { renderHistory(historyItems); return; }
+  const filtered = historyItems.filter(item =>
+    (item.category || '').toLowerCase().includes(q) ||
+    (item.symptom  || '').toLowerCase().includes(q) ||
+    (item.chatLog  || '').toLowerCase().includes(q)
+  );
+  renderHistory(filtered);
+}
+
+// アコーディオン開閉
+function toggleHistoryItem(id) {
+  const el = document.getElementById('hitem-' + id);
+  if (el) el.classList.toggle('open');
+}
+
+// 対処手順コピー
+function copyHistoryText(id) {
+  const text = document.getElementById('last-' + id)?.innerText || '';
+  navigator.clipboard.writeText(text).then(() => {
+    const btns = document.querySelectorAll('#hitem-' + id + ' .copy-btn');
+    btns.forEach(b => { const o = b.textContent; b.textContent = '✅ コピー済み'; setTimeout(() => b.textContent = o, 1500); });
+  });
+}
+
+// TXTダウンロード
+function downloadHistoryText(id, titleBase) {
+  const chatText = document.getElementById('chat-' + id)?.innerText || '';
+  const lastText = document.getElementById('last-' + id)?.innerText || '';
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth()+1).padStart(2,'0');
+  const dd = String(now.getDate()).padStart(2,'0');
+  const safe = titleBase.replace(/[\\/:*?"<>|]/g, '').substring(0, 40);
+  const filename = safe + '_' + yy + mm + dd + '.txt';
+  const text = '【チャット全文】\n' + chatText + '\n\n【最終対処手順】\n' + lastText;
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// 個別削除
+async function deleteHistoryItem(id) {
+  if (!confirm('この事例を削除しますか？')) return;
+  const gasUrl = getGasUrl();
+  try {
+    const res = await fetch(gasUrl + '?action=delete&id=' + encodeURIComponent(id));
+    const data = await res.json();
+    if (data.status === 'deleted') {
+      historyItems = historyItems.filter(i => i.id !== id);
+      renderHistory(historyItems);
+    } else {
+      alert('削除に失敗しました: ' + (data.message || ''));
+    }
+  } catch(e) {
+    alert('削除に失敗しました: ' + e.message);
+  }
+}
+
+// HTMLエスケープ
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ========== チャット送信時に自動保存 ==========
+// 診断セッションID（診断ごとにユニーク）
+let sessionId = '';
+
+function generateSessionId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+async function autoSaveHistory() {
+  const gasUrl = getGasUrl();
+  if (!gasUrl || chatHistory.length < 2) return;
+
+  // カテゴリ・症状をフォーム回答テキストから抽出
+  const receivedText = document.getElementById('d-received-text').value || '';
+  const catMatch = receivedText.match(/カテゴリ[：:]\s*(.+)/);
+  const symMatch = receivedText.match(/症状[：:]\s*(.+)/);
+  const category = catMatch ? catMatch[1].trim() : '（未分類）';
+  const symptom  = symMatch ? symMatch[1].trim() : receivedText.split('\n')[0] || '（症状不明）';
+
+  // チャット全文を整形
+  const chatLog = chatHistory.map(m => {
+    const role = m.role === 'user' ? '【サポート担当】' : '【Claude】';
+    const content = typeof m.content === 'string' ? m.content : m.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    return role + '\n' + content;
+  }).join('\n\n---\n\n');
+
+  // 最終対処手順（最後のClaudeの発言）
+  const lastAnswer = getLastAssistantText();
+
+  const payload = {
+    action:      'save',
+    id:          sessionId,
+    category,
+    symptom,
+    chatLog,
+    lastAnswer
+  };
+
+  try {
+    await fetch(gasUrl, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  } catch(e) {
+    // 保存失敗は静かに無視（ユーザーへの通知なし）
+    console.warn('履歴保存失敗:', e.message);
+  }
+}
+
 </script>
 </body>
 </html>
