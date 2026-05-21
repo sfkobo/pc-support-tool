@@ -523,7 +523,7 @@ select option { background: var(--bg3); }
     <h2>🔑 APIキーを入力</h2>
     <p>このツールを使用するにはClaude APIキーが必要です。入力したキーはこのブラウザのlocalStorageに保存され、次回から自動入力されます。外部サーバーには送信されません。</p>
     <div class="apikey-input-wrap">
-      <input type="password" id="apikey-input" placeholder="sk-ant-..." autocomplete="off">
+      <input type="password" id="apikey-input" placeholder="sk-..." autocomplete="off">
       <button class="apikey-toggle" onclick="toggleKeyVisibility()" title="表示切替">👁</button>
     </div>
     <div class="apikey-hint">⚠️ 同じブラウザであれば次回から自動入力されます。</div>
@@ -745,7 +745,7 @@ let CLAUDE_API_KEY = '';
 // ページ読み込み時にlocalStorageから自動復元
 (function initApiKey() {
   const saved = localStorage.getItem('claudeApiKey') || '';
-  if (saved && saved.startsWith('sk-ant-')) {
+  if (saved && saved.startsWith('sk-')) {
     CLAUDE_API_KEY = saved;
     document.getElementById('apikey-input').value = saved;
     document.getElementById('apikey-overlay').style.display = 'none';
@@ -756,8 +756,8 @@ let CLAUDE_API_KEY = '';
 
 function saveApiKey() {
   const key = document.getElementById('apikey-input').value.trim();
-  if (!key.startsWith('sk-ant-')) {
-    alert('正しいAPIキーを入力してください（sk-ant-で始まる文字列）');
+  if (!key.startsWith('sk-')) {
+    alert('正しいAPIキーを入力してください（sk-で始まる文字列）');
     return;
   }
   CLAUDE_API_KEY = key;
