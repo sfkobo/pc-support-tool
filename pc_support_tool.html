@@ -927,7 +927,7 @@ async function callClaude(messages, maxTokens = 1500) {
       'anthropic-dangerous-direct-browser-access': 'true'
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-sonnet-4-6',
       max_tokens: maxTokens,
       messages
     })
@@ -1004,7 +1004,10 @@ async function runDiagnosis() {
   chatHistory = [];
   document.getElementById('chat-log').innerHTML = '';
   document.getElementById('chat-section').classList.remove('visible');
-  document.getElementById('last-answer-actions').style.display = 'none';
+  // 選択アクションバーをリセット
+  document.getElementById('select-actions').classList.remove('visible');
+  document.getElementById('select-count').textContent = '0件選択中';
+  bubbleIndex = 0;
 
   try {
     const content = [];
@@ -1260,7 +1263,10 @@ function resetChat() {
   document.getElementById('select-actions').classList.remove('visible');
   document.getElementById('select-count').textContent = '0件選択中';
   document.getElementById('chat-section').classList.remove('visible');
-  document.getElementById('last-answer-actions').style.display = 'none';
+  // 選択アクションバーをリセット
+  document.getElementById('select-actions').classList.remove('visible');
+  document.getElementById('select-count').textContent = '0件選択中';
+  bubbleIndex = 0;
   document.getElementById('diag-result').classList.remove('visible','loading');
   document.getElementById('diag-result-content').innerHTML = '';
   document.getElementById('d-received-text').value = '';
