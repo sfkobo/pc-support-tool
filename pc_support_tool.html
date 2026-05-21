@@ -1175,11 +1175,35 @@ function copySelected() {
 function downloadSelected() {
   const text = getSelectedText();
   if (!text) { alert('ダウンロードする内容を選択してください'); return; }
+
+  // 選択した一番上の吹き出しのテキストを取得
+  var firstText = '';
+  var bubbles = document.querySelectorAll('.chat-bubble');
+  for (var i = 0; i < bubbles.length; i++) {
+    var cb = bubbles[i].querySelector('.bubble-check');
+    if (cb && cb.checked) {
+      firstText = bubbles[i].dataset.text || bubbles[i].querySelector('.bubble-body').innerText || '';
+      break;
+    }
+  }
+
+  // 見出し（###または##）があればそれを、なければ1行目を使用
+  var titleBase = '';
+  var headingMatch = firstText.match(/^#{2,3}\s+(.+)/m);
+  if (headingMatch) {
+    titleBase = headingMatch[1].trim();
+  } else {
+    titleBase = firstText.split('\n')[0].trim();
+  }
+  // ファイル名に使えない文字を除去・長さ制限
+  titleBase = titleBase.replace(/[\\/:*?"<>|#]/g, '').substring(0, 30) || 'サポート記録';
+
   const now = new Date();
   const yy = String(now.getFullYear()).slice(-2);
   const mm = String(now.getMonth()+1).padStart(2,'0');
   const dd = String(now.getDate()).padStart(2,'0');
-  const filename = 'サポート記録_' + yy + mm + dd + '.txt';
+  const filename = titleBase + '_' + yy + mm + dd + '.txt';
+
   const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
